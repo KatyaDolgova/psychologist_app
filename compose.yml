@@ -65,26 +65,6 @@ services:
             - --maxmemory-policy
             - 'allkeys-lru'
 
-    celery_worker:
-        container_name: celery-worker
-        build:
-            context: backend
-        restart: always
-        env_file:
-            - .env
-        environment:
-            - RUN_MIGRATIONS=0
-        working_dir: /app
-        volumes:
-            - ./backend:/app
-        depends_on:
-            - db
-            - redis
-        # Disable inherited HEALTHCHECK — it probes /docs on port 8000 which celery doesn't serve.
-        healthcheck:
-            disable: true
-        command: celery -A src.tasks.celery_app worker --loglevel=info
-
     frontend:
         container_name: frontend-web
         build:
