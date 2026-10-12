@@ -116,6 +116,9 @@ class TestClientProfileEndpoints:
                 },
                 200,
             ),
+            (get_random_user_email(), {"name": "string", "phone": None}, 200),
+            (get_random_user_email(), {"name": "string", "phone": ""}, 200),
+            (get_random_user_email(), {"name": "string", "phone": "   "}, 200),
             (get_random_user_email(), {"phone": "string"}, 422),
             (get_random_user_email(), {"email": "meow"}, 422),
         ],
@@ -136,6 +139,29 @@ class TestClientProfileEndpoints:
             json=json,
         )
         assert response.status_code == code
+
+    @pytest.mark.asyncio
+    async def test_update_profile_clear_phone(self, client, db_session):
+        """Тест удаления номера из профиля: пустая строка сохраняется как null"""
+        async with db_session as session:
+            user_id = await Store(session).user.get_or_create_client(
+                email=get_random_user_email()
+            )
+            await Store(session).client.update(
+                model_id=user_id, return_model=False, phone="+79433334561"
+            )
+            await session.commit()
+
+        auth_service = AuthService()
+        tokens = auth_service.create_tokens({"sub": str(user_id), "type": "CLIENT"})
+        headers = {"Authorization": f"Bearer {tokens.token}"}
+
+        response = client.patch("/user/", headers=headers, json={"phone": ""})
+        assert response.status_code == 200
+
+        response = client.get("/user/", headers=headers)
+        assert response.status_code == 200
+        assert response.json()["phone"] is None
 
     @pytest.mark.asyncio
     async def test_update_profile_email_conflict(self, client, db_session):

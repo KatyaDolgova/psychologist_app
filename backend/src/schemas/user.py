@@ -14,12 +14,21 @@ from src.models.enums import (
 )
 from src.utils.validators import normalize_and_validate_phone
 
+PHONE_EXAMPLES = ["+79994445678"]
+
+
+def validate_optional_phone(v: str | None) -> str | None:
+    """Пустой номер (None, "" или пробелы) означает, что телефона нет."""
+    if v is None or not v.strip():
+        return None
+    return normalize_and_validate_phone(v)
+
 
 class UserProfileResponse(BaseModel):
     id: int
     name: str | None = None
     email: EmailStr
-    phone: str | None = Field("+79994445678")
+    phone: str | None = Field(None, examples=PHONE_EXAMPLES)
     notifications: bool
     subscription: int | None = None  # UNIX-TIME дата,
     timezone: UserTimezone | None = None
@@ -50,7 +59,7 @@ class UserSurvey(BaseModel):
 
 class ProfileUpdateRequest(BaseModel):
     name: str | None = None
-    phone: str | None = Field("+79994445678")
+    phone: str | None = Field(None, examples=PHONE_EXAMPLES)
     email: EmailStr | None = None
     birth_date: datetime | None = None
     gender: UserGender | None = None
@@ -59,7 +68,7 @@ class ProfileUpdateRequest(BaseModel):
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, v):
-        return normalize_and_validate_phone(v)
+        return validate_optional_phone(v)
 
 
 class AdminProfile(BaseModel):
@@ -70,7 +79,7 @@ class UserForAdmin(BaseModel):
     id: int
     email: EmailStr
     name: str | None = None
-    phone: str | None = Field("+79994445678")
+    phone: str | None = Field(None, examples=PHONE_EXAMPLES)
     roles: list[UserRole]
 
 
@@ -92,7 +101,7 @@ class UserDetailForAdmin(BaseModel):
     id: int
     email: EmailStr
     name: str | None = None
-    phone: str | None = Field("+79994445678")
+    phone: str | None = Field(None, examples=PHONE_EXAMPLES)
     roles: list[UserRole]
     age: int | None = None
     transactions: list[TransactionSchema] = []
@@ -101,7 +110,7 @@ class UserDetailForAdmin(BaseModel):
 
 class UserUpdateRequestForAdmin(BaseModel):
     name: str | None = None
-    phone: str | None = Field("+79994445678")
+    phone: str | None = Field(None, examples=PHONE_EXAMPLES)
     email: EmailStr | None = None
     birth_date: datetime | None = None
     gender: UserGender | None = None
@@ -110,4 +119,4 @@ class UserUpdateRequestForAdmin(BaseModel):
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, v):
-        return normalize_and_validate_phone(v)
+        return validate_optional_phone(v)
