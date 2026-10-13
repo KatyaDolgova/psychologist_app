@@ -8,6 +8,7 @@ from src.core.exceptions import (
     AppointmentAlreadyCancelledError,
     NotAppointmentAttendeeError,
     NotSlotOwnerError,
+    SlotInPastError,
     SlotNotAvailableError,
     SlotNotBookedError,
     SlotNotFoundError,
@@ -42,13 +43,20 @@ class BookingService:
 
         Raises:
             SlotNotFoundError: слот с таким id не существует.
+            SlotInPastError: время слота уже наступило.
             SlotNotAvailableError: слот не находится в статусе FREE.
         """
         psychologist_id = await self._store.availability_slot.try_book(slot_id=slot_id)
         if psychologist_id is None:
-            exists = await self._store.availability_slot.find_by_id(model_id=slot_id)
-            if exists is None:
+            slot = await self._store.availability_slot.find_by_id(model_id=slot_id)
+            if slot is None:
                 raise SlotNotFoundError()
+            starts_at = slot.starts_at
+            if starts_at.tzinfo is None:
+                # SQLite возвращает naive-datetime; в БД время хранится в UTC.
+                starts_at = starts_at.replace(tzinfo=timezone.utc)
+            if starts_at <= datetime.now(timezone.utc):
+                raise SlotInPastError()
             raise SlotNotAvailableError()
 
         appointment = await self._store.appointment.add(

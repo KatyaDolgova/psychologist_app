@@ -130,7 +130,9 @@ async def test_unique_constraint_on_psy_starts(store, psy_user):
 
 
 async def test_try_book_returns_psy_id_on_success(store, psy_user):
-    starts = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
+    starts = (datetime.now(timezone.utc) + timedelta(days=7)).replace(
+        hour=9, minute=0, second=0, microsecond=0
+    )
     slot = await store.availability_slot.add(
         return_model=True,
         psychologist_id=psy_user,
@@ -141,6 +143,21 @@ async def test_try_book_returns_psy_id_on_success(store, psy_user):
     )
     psy_id = await store.availability_slot.try_book(slot.id)
     assert psy_id == psy_user
+
+
+async def test_try_book_returns_none_when_started(store, psy_user):
+    starts = (datetime.now(timezone.utc) - timedelta(hours=1)).replace(
+        second=0, microsecond=0
+    )
+    slot = await store.availability_slot.add(
+        return_model=True,
+        psychologist_id=psy_user,
+        starts_at=starts,
+        ends_at=starts + timedelta(hours=1),
+        status=SlotStatus.FREE,
+        source=SlotSource.MANUAL,
+    )
+    assert await store.availability_slot.try_book(slot.id) is None
 
 
 async def test_try_book_returns_none_when_not_free(store, psy_user):

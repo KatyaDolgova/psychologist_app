@@ -159,6 +159,13 @@ class SlotNotAvailableError(BaseError):
     detail = "Слот более недоступен"
 
 
+class SlotInPastError(BaseError):
+    """Клиент пытается забронировать слот, время которого уже наступило."""
+
+    status_code = status.HTTP_409_CONFLICT
+    detail = "Нельзя записаться на прошедшее время"
+
+
 class SlotNotFreeError(BaseError):
     """Психолог пытается изменить или удалить слот, который не FREE."""
 

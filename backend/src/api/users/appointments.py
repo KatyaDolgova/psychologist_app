@@ -41,11 +41,15 @@ async def cancel_appointment(
 @router.get(
     "/",
     summary="Список моих записей",
-    description="Возвращает записи клиента.",
+    description=(
+        "Возвращает записи клиента: предстоящие (is_upcoming=true, по умолчанию) "
+        "или завершённые (is_upcoming=false)."
+    ),
 )
 async def get_all_appointments(
     limit: int = 25,
     offset: int = 0,
+    is_upcoming: bool = True,
     current_client: int = Depends(get_current_user_id),
     service: AppointmentService = Depends(),
 ) -> list[AppointmentSchema]:
@@ -53,4 +57,5 @@ async def get_all_appointments(
         limit=limit,
         offset=offset,
         client_id=current_client,
+        is_upcoming=is_upcoming,
     )

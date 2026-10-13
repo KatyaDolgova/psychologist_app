@@ -494,8 +494,11 @@ export default function Sessions() {
 					),
 				);
 			} else {
-				const data = await getAllAppointments(token);
-				const all = data ?? [];
+				const [upcomingData, completedData] = await Promise.all([
+					getAllAppointments(token, true),
+					getAllAppointments(token, false),
+				]);
+				const all = [...(upcomingData ?? []), ...(completedData ?? [])];
 				setUpcoming(
 					all
 						.filter((a: any) => isUpcoming(a.start_at, new Date()))

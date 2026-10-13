@@ -98,13 +98,14 @@ class AppointmentService:
         ]
 
     async def get_client_appointments(
-        self, client_id: int, limit: int, offset: int
+        self, client_id: int, limit: int, offset: int, is_upcoming: bool = True
     ) -> list[AppointmentSchema]:
         return await self._get_user_appointments(
             client_id=client_id,
             limit=limit,
             offset=offset,
             user_type=AppointmentRole.CLIENT,
+            is_upcoming=is_upcoming,
         )
 
     async def get_psychologist_appointments(
