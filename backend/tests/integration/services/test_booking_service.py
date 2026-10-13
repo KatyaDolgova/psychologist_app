@@ -8,6 +8,7 @@ from src.core.exceptions import (
     AppointmentAlreadyCancelledError,
     NotAppointmentAttendeeError,
     NotSlotOwnerError,
+    SlotInPastError,
     SlotNotAvailableError,
     SlotNotBookedError,
     SlotNotFoundError,
@@ -46,7 +47,9 @@ async def psy_and_client(store):
 @pytest_asyncio.fixture
 async def free_slot(store, psy_and_client):
     psy_id, _ = psy_and_client
-    starts = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
+    starts = (datetime.now(timezone.utc) + timedelta(days=7)).replace(
+        hour=9, minute=0, second=0, microsecond=0
+    )
     slot = await store.availability_slot.add(
         return_model=True,
         psychologist_id=psy_id,
@@ -71,6 +74,26 @@ async def test_book_free_slot_creates_appointment_and_marks_booked(
     attendees = await store.appointment_attendee.find_all(appointment_id=appt.id)
     roles = {a.role for a in attendees}
     assert roles == {AppointmentRole.CLIENT, AppointmentRole.PSYCHOLOGIST}
+
+
+async def test_book_past_slot_raises(store, psy_and_client):
+    psy_id, client_id = psy_and_client
+    starts = (datetime.now(timezone.utc) - timedelta(hours=2)).replace(
+        minute=0, second=0, microsecond=0
+    )
+    slot = await store.availability_slot.add(
+        return_model=True,
+        psychologist_id=psy_id,
+        starts_at=starts,
+        ends_at=starts + timedelta(hours=1),
+        status=SlotStatus.FREE,
+        source=SlotSource.MANUAL,
+    )
+    service = BookingService(store=store)
+    with pytest.raises(SlotInPastError):
+        await service.book_slot(client_id=client_id, slot_id=slot.id)
+    refreshed = await store.session.get(AvailabilitySlot, slot.id)
+    assert refreshed.status == SlotStatus.FREE
 
 
 async def test_book_non_free_slot_raises(store, psy_and_client, free_slot):

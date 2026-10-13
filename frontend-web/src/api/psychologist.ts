@@ -143,8 +143,13 @@ export const getPsychologistsForClient = async (token: string) => {
 	}
 };
 
-export const getAllAppointments = async (token: string) => {
-	const url = '/user/appointments/';
+export const getAllAppointments = async (
+	token: string,
+	isUpcoming?: boolean,
+) => {
+	const params = new URLSearchParams({ limit: '100', offset: '0' });
+	if (isUpcoming !== undefined) params.set('is_upcoming', String(isUpcoming));
+	const url = `/user/appointments/?${params}`;
 	try {
 		const res = await apiFetch(url, {
 			headers: {

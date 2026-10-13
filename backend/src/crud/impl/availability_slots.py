@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Sequence
 from uuid import UUID
 
@@ -113,14 +113,22 @@ class AvailabilitySlotsDAO(BaseDAO):
     async def try_book(self, slot_id: UUID) -> int | None:
         """Atomic FREE→BOOKED transition (optimistic locking).
 
-        Single UPDATE ... WHERE status='FREE'. Returns psy_id on success,
-        None if the slot wasn't FREE (or doesn't exist).
+        Single UPDATE ... WHERE status='FREE' AND starts_at > now. Returns
+        psy_id on success, None if the slot wasn't FREE, has already started
+        (or doesn't exist).
         """
         stmt = (
             update(self.model)
-            .where(self.model.id == slot_id, self.model.status == SlotStatus.FREE)
+            .where(
+                self.model.id == slot_id,
+                self.model.status == SlotStatus.FREE,
+                self.model.starts_at > datetime.now(timezone.utc),
+            )
             .values(status=SlotStatus.BOOKED)
             .returning(self.model.psychologist_id)
+            # "fetch" вместо Python-оценки условия: на SQLite starts_at в
+            # сессии naive и не сравнивается с aware datetime.now(timezone.utc).
+            .execution_options(synchronize_session="fetch")
         )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
