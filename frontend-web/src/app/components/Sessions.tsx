@@ -62,14 +62,33 @@ const getInitials = (name: string | null) =>
 				.toUpperCase()
 		: '?';
 
-const isUpcoming = (startAt: string, now: Date) =>
-	now < new Date(new Date(startAt).getTime() + 15 * 60 * 1000);
+const JOIN_BEFORE_MS = 15 * 60 * 1000;
+const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 
-const isInActiveWindow = (startAt: string, now: Date) => {
-	const start = new Date(startAt).getTime();
+// Конец сессии; если ends_at не пришёл - считаем по стандартной длительности.
+const getEndTime = (appointment: { start_at: string; ends_at?: string }) =>
+	appointment.ends_at
+		? new Date(appointment.ends_at).getTime()
+		: new Date(appointment.start_at).getTime() + DEFAULT_DURATION_MS;
+
+// Сессия не завершена, пока не наступило время её окончания.
+const isUpcoming = (
+	appointment: { start_at: string; ends_at?: string },
+	now: Date,
+) => now.getTime() < getEndTime(appointment);
+
+// Подключиться можно за 15 минут до начала и до самого окончания.
+const isInActiveWindow = (
+	appointment: { start_at: string; ends_at?: string },
+	now: Date,
+) => {
+	const start = new Date(appointment.start_at).getTime();
 	const t = now.getTime();
-	return t >= start - 15 * 60 * 1000 && t < start + 15 * 60 * 1000;
+	return t >= start - JOIN_BEFORE_MS && t < getEndTime(appointment);
 };
+
+const hasStarted = (appointment: { start_at: string }, now: Date) =>
+	now.getTime() >= new Date(appointment.start_at).getTime();
 
 interface FreeSlot {
 	id: string;
@@ -316,8 +335,9 @@ function SessionCard({
 		}
 	};
 
-	const active = isInActiveWindow(appointment.start_at, now);
-	const upcoming = isUpcoming(appointment.start_at, now);
+	const active = isInActiveWindow(appointment, now);
+	const upcoming = isUpcoming(appointment, now);
+	const started = hasStarted(appointment, now);
 	const duration = getDurationMin(appointment.start_at, appointment.ends_at);
 	const initials = getInitials(otherParty?.name ?? null);
 
@@ -355,14 +375,14 @@ function SessionCard({
 					<Badge
 						className={`p-1 ${
 							upcoming
-								? active
+								? started
 									? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
 									: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
 								: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
 						}`}
 					>
 						{upcoming
-							? active
+							? started
 								? 'Идёт сейчас'
 								: 'Запланировано'
 							: 'Завершено'}
@@ -425,7 +445,7 @@ function SessionCard({
 							{active ? 'Начать сессию' : 'Недоступно'}
 						</Button>
 					)}
-					{upcoming && !isPsychologist && (
+					{upcoming && !started && !isPsychologist && (
 						<Button
 							variant='outline'
 							size='icon'
@@ -501,7 +521,7 @@ export default function Sessions() {
 				const all = [...(upcomingData ?? []), ...(completedData ?? [])];
 				setUpcoming(
 					all
-						.filter((a: any) => isUpcoming(a.start_at, new Date()))
+						.filter((a: any) => isUpcoming(a, new Date()))
 						.sort(
 							(a: any, b: any) =>
 								new Date(a.start_at).getTime() -
@@ -510,7 +530,7 @@ export default function Sessions() {
 				);
 				setCompleted(
 					all
-						.filter((a: any) => !isUpcoming(a.start_at, new Date()))
+						.filter((a: any) => !isUpcoming(a, new Date()))
 						.sort(
 							(a: any, b: any) =>
 								new Date(b.start_at).getTime() -
