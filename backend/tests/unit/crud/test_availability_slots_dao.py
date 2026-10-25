@@ -224,7 +224,8 @@ async def test_try_psy_cancel_checks_ownership_and_status(store, psy_user):
 async def test_delete_stale_free_removes_only_old_free(store, psy_user):
     now = datetime.now(timezone.utc)
     # Old FREE — should be deleted
-    await store.availability_slot.add(
+    old_free = await store.availability_slot.add(
+        return_model=True,
         psychologist_id=psy_user,
         starts_at=now - timedelta(days=30),
         ends_at=now - timedelta(days=30) + timedelta(hours=1),
@@ -232,7 +233,8 @@ async def test_delete_stale_free_removes_only_old_free(store, psy_user):
         source=SlotSource.MANUAL,
     )
     # Old BOOKED — must be kept
-    await store.availability_slot.add(
+    old_booked = await store.availability_slot.add(
+        return_model=True,
         psychologist_id=psy_user,
         starts_at=now - timedelta(days=20),
         ends_at=now - timedelta(days=20) + timedelta(hours=1),
@@ -240,17 +242,27 @@ async def test_delete_stale_free_removes_only_old_free(store, psy_user):
         source=SlotSource.MANUAL,
     )
     # Future FREE — must be kept
-    await store.availability_slot.add(
+    future_free = await store.availability_slot.add(
+        return_model=True,
         psychologist_id=psy_user,
         starts_at=now + timedelta(days=10),
         ends_at=now + timedelta(days=10, hours=1),
         status=SlotStatus.FREE,
         source=SlotSource.MANUAL,
     )
+    ids = (old_free.id, old_booked.id, future_free.id)
+    store.session.expunge_all()
 
     cutoff = now - timedelta(days=7)
     deleted = await store.availability_slot.delete_stale_free(cutoff=cutoff)
-    assert deleted == 1
+
+    # Очистка глобальная: в общей тестовой БД могут лежать старые слоты
+    # других тестов, поэтому проверяем судьбу своих слотов, а не точный счётчик.
+    assert deleted >= 1
+    old_free_id, old_booked_id, future_free_id = ids
+    assert await store.availability_slot.find_by_id(model_id=old_free_id) is None
+    assert await store.availability_slot.find_by_id(model_id=old_booked_id)
+    assert await store.availability_slot.find_by_id(model_id=future_free_id)
 
 
 async def test_last_slot_date_returns_latest(store, psy_user):
