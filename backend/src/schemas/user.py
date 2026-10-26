@@ -15,6 +15,7 @@ from src.models.enums import (
 from src.utils.validators import normalize_and_validate_phone
 
 PHONE_EXAMPLES = ["+79994445678"]
+MAX_AGE_YEARS = 120
 
 
 def validate_optional_phone(v: str | None) -> str | None:
@@ -22,6 +23,21 @@ def validate_optional_phone(v: str | None) -> str | None:
     if v is None or not v.strip():
         return None
     return normalize_and_validate_phone(v)
+
+
+def validate_birth_date(v: datetime | None) -> datetime | None:
+    """Дата рождения не может быть в будущем или раньше, чем MAX_AGE_YEARS лет назад."""
+    if v is None:
+        return None
+    birth_date = v.date()
+    today = date.today()
+    if birth_date > today:
+        raise ValueError("Дата рождения не может быть в будущем")
+    if birth_date < date(today.year - MAX_AGE_YEARS, 1, 1):
+        raise ValueError(
+            f"Дата рождения не может быть раньше {MAX_AGE_YEARS} лет назад"
+        )
+    return v
 
 
 class UserProfileResponse(BaseModel):
@@ -56,6 +72,11 @@ class UserSurvey(BaseModel):
 
     model_config = ConfigDict(use_enum_values=True)
 
+    @field_validator("birth_date")
+    @classmethod
+    def check_birth_date(cls, v):
+        return validate_birth_date(v)
+
 
 class ProfileUpdateRequest(BaseModel):
     name: str | None = None
@@ -69,6 +90,11 @@ class ProfileUpdateRequest(BaseModel):
     @classmethod
     def validate_phone(cls, v):
         return validate_optional_phone(v)
+
+    @field_validator("birth_date")
+    @classmethod
+    def check_birth_date(cls, v):
+        return validate_birth_date(v)
 
 
 class AdminProfile(BaseModel):
@@ -120,3 +146,8 @@ class UserUpdateRequestForAdmin(BaseModel):
     @classmethod
     def validate_phone(cls, v):
         return validate_optional_phone(v)
+
+    @field_validator("birth_date")
+    @classmethod
+    def check_birth_date(cls, v):
+        return validate_birth_date(v)

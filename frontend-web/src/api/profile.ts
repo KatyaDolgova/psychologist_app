@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, getErrorMessage } from './client';
 
 export const sendUserData = async (token: string, data: any) => {
 	const url = '/user/survey/';
@@ -14,7 +14,7 @@ export const sendUserData = async (token: string, data: any) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 
 		return res.json();
@@ -37,7 +37,7 @@ export const getUser = async (token: string) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 
 		return res.json();
@@ -62,7 +62,7 @@ export const updateUser = async (token: string, data: any) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 
 		return true;
@@ -89,7 +89,7 @@ export const updateUserPhoto = async (token: string, file: File) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.detail || error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 
 		return res.json();
@@ -112,7 +112,7 @@ export const deleteUser = async (token: string) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 	} catch (error: any) {
 		console.log('Ошибка во время получения удаления пользователя: ', error);

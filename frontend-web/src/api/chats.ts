@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, getErrorMessage } from './client';
 
 export const createDirectChat = async (token: string, otherUserId: number) => {
 	const res = await apiFetch('/chats/direct/', {
@@ -11,7 +11,7 @@ export const createDirectChat = async (token: string, otherUserId: number) => {
 	});
 	if (!res.ok) {
 		const error = await res.json();
-		throw new Error(error?.message || 'API error');
+		throw new Error(getErrorMessage(error));
 	}
 	return res.json();
 };
@@ -25,7 +25,7 @@ export const getChats = async (token: string) => {
 	});
 	if (!res.ok) {
 		const error = await res.json();
-		throw new Error(error?.message || 'API error');
+		throw new Error(getErrorMessage(error));
 	}
 	return res.json();
 };

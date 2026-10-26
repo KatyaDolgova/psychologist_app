@@ -21,6 +21,7 @@ import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { getVerifyCode, checkVerifyCode } from '../../api/auth';
 import { getUser, sendUserData } from '../../api/profile';
+import { birthDateMax, birthDateMin, validateBirthDate } from '../birthDate';
 import {
 	getPsyshologistProfile,
 	updatePsyshologistProfile,
@@ -175,6 +176,10 @@ export default function Auth() {
 		const errors: Record<string, string> = {};
 		if (!clientName.trim()) errors.name = 'Имя обязательно';
 		if (!clientBirthDate) errors.birth_date = 'Дата рождения обязательна';
+		else {
+			const birthDateError = validateBirthDate(clientBirthDate);
+			if (birthDateError) errors.birth_date = birthDateError;
+		}
 		if (Object.keys(errors).length > 0) {
 			setSurveyErrors(errors);
 			return;
@@ -472,6 +477,8 @@ export default function Auth() {
 								<Input
 									id='birth_date'
 									type='date'
+									min={birthDateMin()}
+									max={birthDateMax()}
 									value={clientBirthDate}
 									onChange={(e) => {
 										setClientBirthDate(e.target.value);

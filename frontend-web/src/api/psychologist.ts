@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, getErrorMessage } from './client';
 
 export const getPsyshologistProfile = async (token: string) => {
 	const url = '/psychologists/profile/';
@@ -12,7 +12,7 @@ export const getPsyshologistProfile = async (token: string) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 		return res.json();
 	} catch (error: any) {
@@ -35,7 +35,7 @@ export const updatePsyshologistProfile = async (token: string, form: any) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 		return res.json();
 	} catch (error: any) {
@@ -61,7 +61,7 @@ export const updatePsychologistPhoto = async (token: string, file: File) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.detail || error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 
 		return res.json();
@@ -89,7 +89,7 @@ export const createAppointment = async (
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 	} catch (error: any) {
 		console.log('Ошибка во время создания записей: ', error);
@@ -114,7 +114,7 @@ export const getPsyshologistAppointments = async (
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 		return res.json();
 	} catch (error: any) {
@@ -134,7 +134,7 @@ export const getPsychologistsForClient = async (token: string) => {
 		});
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 		return res.json();
 	} catch (error: any) {
@@ -160,7 +160,7 @@ export const getAllAppointments = async (
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 		return res.json();
 	} catch (error: any) {
@@ -183,7 +183,7 @@ export const addToFavorite = async (token: string, id: number) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 	} catch (error: any) {
 		console.log(
@@ -206,7 +206,7 @@ export const getAllFavorites = async (token: string) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 
 		return res.json();
@@ -229,7 +229,7 @@ export const deleteFavoritePsychologist = async (token: string, id: number) => {
 
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 	} catch (error: any) {
 		console.log(
@@ -247,7 +247,7 @@ export const getWorkingHours = async (token: string) => {
 			Authorization: `Bearer ${token}`,
 		},
 	});
-	if (!res.ok) throw new Error((await res.json())?.detail || 'API error');
+	if (!res.ok) throw new Error(getErrorMessage(await res.json()));
 	return res.json();
 };
 
@@ -260,7 +260,7 @@ export const updateWorkingHours = async (token: string, ranges: any[]) => {
 		},
 		body: JSON.stringify({ ranges }),
 	});
-	if (!res.ok) throw new Error((await res.json())?.detail || 'API error');
+	if (!res.ok) throw new Error(getErrorMessage(await res.json()));
 	return res.json();
 };
 
@@ -275,7 +275,7 @@ export const getClientsForPsychologist = async (token: string) => {
 		});
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 		return res.json();
 	} catch (error: any) {
@@ -305,7 +305,7 @@ export const getPsychologistAppointmentsForClient = async (
 		});
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.detail || error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 		return res.json();
 	} catch (error: any) {
@@ -328,7 +328,7 @@ export const getClientForPsychologistByID = async (
 		});
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 		return res.json();
 	} catch (error: any) {
@@ -348,7 +348,7 @@ export const getMySlots = async (
 	const res = await apiFetch(`/psychologists/slots/?${params}`, {
 		headers: { Authorization: `Bearer ${token}` },
 	});
-	if (!res.ok) throw new Error((await res.json())?.detail || 'API error');
+	if (!res.ok) throw new Error(getErrorMessage(await res.json()));
 	return res.json();
 };
 
@@ -365,7 +365,7 @@ export const generateSlots = async (
 		method: 'POST',
 		headers: { Authorization: `Bearer ${token}` },
 	});
-	if (!res.ok) throw new Error((await res.json())?.detail || 'API error');
+	if (!res.ok) throw new Error(getErrorMessage(await res.json()));
 	return res.json();
 };
 
@@ -378,7 +378,7 @@ export const createManualSlot = async (token: string, startsAt: string) => {
 		},
 		body: JSON.stringify({ starts_at: startsAt }),
 	});
-	if (!res.ok) throw new Error((await res.json())?.detail || 'API error');
+	if (!res.ok) throw new Error(getErrorMessage(await res.json()));
 	return res.json();
 };
 
@@ -388,7 +388,7 @@ export const deleteSlot = async (token: string, slotId: string) => {
 		headers: { Authorization: `Bearer ${token}` },
 	});
 	if (!res.ok && res.status !== 204)
-		throw new Error((await res.json())?.detail || 'API error');
+		throw new Error(getErrorMessage(await res.json()));
 };
 
 export const cancelSlot = async (
@@ -405,7 +405,7 @@ export const cancelSlot = async (
 		body: JSON.stringify({ reason: reason ?? null }),
 	});
 	if (!res.ok && res.status !== 204)
-		throw new Error((await res.json())?.detail || 'API error');
+		throw new Error(getErrorMessage(await res.json()));
 };
 
 export const getFreeSlots = async (
@@ -419,7 +419,7 @@ export const getFreeSlots = async (
 		`/psychologists/${psychologistId}/free-slots/?${params}`,
 		{ headers: { Authorization: `Bearer ${token}` } },
 	);
-	if (!res.ok) throw new Error((await res.json())?.detail || 'API error');
+	if (!res.ok) throw new Error(getErrorMessage(await res.json()));
 	return res.json();
 };
 
@@ -432,7 +432,7 @@ export const bookSlot = async (token: string, slotId: string) => {
 		},
 		body: JSON.stringify({ slot_id: slotId }),
 	});
-	if (!res.ok) throw new Error((await res.json())?.detail || 'API error');
+	if (!res.ok) throw new Error(getErrorMessage(await res.json()));
 	return res.json();
 };
 
@@ -445,7 +445,7 @@ export const cancelAppointment = async (
 		headers: { Authorization: `Bearer ${token}` },
 	});
 	if (!res.ok && res.status !== 204)
-		throw new Error((await res.json())?.detail || 'API error');
+		throw new Error(getErrorMessage(await res.json()));
 };
 
 export const getClientNotes = async (token: string, client_id: number) => {
@@ -459,7 +459,7 @@ export const getClientNotes = async (token: string, client_id: number) => {
 		});
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 		return res.json();
 	} catch (error: any) {
@@ -485,7 +485,7 @@ export const createClientNote = async (
 		});
 		if (!res.ok) {
 			const error = await res.json();
-			throw new Error(error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 		return res.json();
 	} catch (error: any) {
@@ -510,7 +510,7 @@ export const deleteClientNote = async (
 		});
 		if (!res.ok && res.status !== 204) {
 			const error = await res.json();
-			throw new Error(error?.detail || error?.message || 'API error');
+			throw new Error(getErrorMessage(error));
 		}
 	} catch (error: any) {
 		console.log('Ошибка при удалении заметки:', error);
