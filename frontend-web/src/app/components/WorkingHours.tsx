@@ -74,6 +74,10 @@ const calcHours = (start: string | null, end: string | null): number => {
 	return diff > 0 ? diff : 0;
 };
 
+// 7.666… → «7,7»; целые часы выводятся без дробной части.
+const formatHours = (hours: number) =>
+	hours.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+
 interface Slot {
 	id: string;
 	starts_at: string;
@@ -233,22 +237,6 @@ export default function WorkingHours() {
 		setSaveError('');
 		setSaved(false);
 
-		const isFullHour = (t: string | null) => {
-			if (!t) return true;
-			const [, mm] = toInput(t).split(':');
-			return mm === '00';
-		};
-
-		const invalidDay = schedule.find(
-			(d) => !isFullHour(d.start_time) || !isFullHour(d.end_time),
-		);
-		if (invalidDay) {
-			setSaveError(
-				`${DAY_NAMES[invalidDay.day_of_week]}: время должно быть целым числом часов (например, 09:00, 18:00)`,
-			);
-			return;
-		}
-
 		setSaving(true);
 		try {
 			const payload = schedule
@@ -345,7 +333,7 @@ export default function WorkingHours() {
 								Часов в неделю
 							</p>
 							<p className='text-2xl font-bold text-gray-900 dark:text-white'>
-								{totalHours}
+								{formatHours(totalHours)}
 							</p>
 						</div>
 					</CardContent>
@@ -386,9 +374,11 @@ export default function WorkingHours() {
 										</div>
 										{day.start_time && day.end_time && (
 											<div className='text-xs font-medium text-blue-600 dark:text-blue-400 mt-1'>
-												{calcHours(
-													day.start_time,
-													day.end_time,
+												{formatHours(
+													calcHours(
+														day.start_time,
+														day.end_time,
+													),
 												)}
 												ч
 											</div>
@@ -468,7 +458,6 @@ export default function WorkingHours() {
 												<Clock className='w-4 h-4 text-gray-400' />
 												<Input
 													type='time'
-													step={3600}
 													value={toInput(
 														day.start_time,
 													)}
@@ -492,7 +481,6 @@ export default function WorkingHours() {
 												<Clock className='w-4 h-4 text-gray-400' />
 												<Input
 													type='time'
-													step={3600}
 													value={toInput(
 														day.end_time,
 													)}
@@ -511,9 +499,11 @@ export default function WorkingHours() {
 										{day.start_time && day.end_time && (
 											<div className='flex items-end'>
 												<span className='text-sm text-gray-500 dark:text-gray-400'>
-													{calcHours(
-														day.start_time,
-														day.end_time,
+													{formatHours(
+														calcHours(
+															day.start_time,
+															day.end_time,
+														),
 													)}{' '}
 													ч рабочих
 												</span>
