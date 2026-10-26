@@ -30,6 +30,8 @@ import {
 	createManualSlot,
 	deleteSlot,
 	cancelSlot,
+	getPsyshologistProfile,
+	updatePsyshologistProfile,
 } from '../../api/psychologist';
 
 const DAY_ORDER = [
@@ -74,6 +76,19 @@ const calcHours = (start: string | null, end: string | null): number => {
 	return diff > 0 ? diff : 0;
 };
 
+// 7.666… → «7,7»; целые часы выводятся без дробной части.
+const formatHours = (hours: number) =>
+	hours.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+
+const DURATION_OPTIONS = [30, 45, 50, 60, 90, 120];
+const DEFAULT_DURATION = 60;
+const DEFAULT_BREAK = { start: '13:00:00', end: '14:00:00' };
+
+const toMinutes = (t: string) => {
+	const [h, m] = t.split(':').map(Number);
+	return h * 60 + m;
+};
+
 interface Slot {
 	id: string;
 	starts_at: string;
@@ -82,12 +97,117 @@ interface Slot {
 	source: 'TEMPLATE' | 'MANUAL';
 }
 
+// Диапазон шаблона в том виде, в каком его хранит бэкенд.
+interface TemplateRange {
+	day_of_week: string;
+	start_time: string;
+	end_time: string;
+	is_active: boolean;
+}
+
+// День в интерфейсе: рабочее время и необязательный перерыв.
+// На бэкенд день с перерывом уходит двумя диапазонами: до и после перерыва.
 interface DaySchedule {
 	day_of_week: string;
 	start_time: string | null;
 	end_time: string | null;
 	is_active: boolean;
+	has_break: boolean;
+	break_start: string | null;
+	break_end: string | null;
 }
+
+const emptyDay = (day: string): DaySchedule => ({
+	day_of_week: day,
+	start_time: null,
+	end_time: null,
+	is_active: false,
+	has_break: false,
+	break_start: null,
+	break_end: null,
+});
+
+// Диапазоны с бэкенда → дни интерфейса. Два диапазона в один день = день с перерывом.
+const fromRanges = (ranges: TemplateRange[]): DaySchedule[] =>
+	DAY_ORDER.map((day) => {
+		const own = ranges
+			.filter((r) => r.day_of_week === day)
+			.sort((a, b) => a.start_time.localeCompare(b.start_time));
+		if (own.length === 0) return emptyDay(day);
+		const hasBreak = own.length > 1;
+		return {
+			day_of_week: day,
+			start_time: own[0].start_time,
+			end_time: own[own.length - 1].end_time,
+			is_active: own.some((r) => r.is_active),
+			has_break: hasBreak,
+			break_start: hasBreak ? own[0].end_time : null,
+			break_end: hasBreak ? own[1].start_time : null,
+		};
+	});
+
+const isBreakInside = (d: DaySchedule) => {
+	if (!d.has_break || !d.start_time || !d.end_time) return false;
+	if (!d.break_start || !d.break_end) return false;
+	const start = toMinutes(d.start_time);
+	const breakStart = toMinutes(d.break_start);
+	const breakEnd = toMinutes(d.break_end);
+	return (
+		start < breakStart &&
+		breakStart < breakEnd &&
+		breakEnd < toMinutes(d.end_time)
+	);
+};
+
+// Рабочие отрезки дня: один без перерыва, два с перерывом.
+const dayIntervals = (d: DaySchedule): [string, string][] => {
+	if (!d.start_time || !d.end_time) return [];
+	if (isBreakInside(d)) {
+		return [
+			[d.start_time, d.break_start!],
+			[d.break_end!, d.end_time],
+		];
+	}
+	return [[d.start_time, d.end_time]];
+};
+
+// Дни интерфейса → диапазоны для бэкенда.
+const toRanges = (schedule: DaySchedule[]) =>
+	schedule.flatMap((d) =>
+		dayIntervals(d).map(([start, end]) => ({
+			day_of_week: d.day_of_week,
+			start_time: toApi(toInput(start)),
+			end_time: toApi(toInput(end)),
+			is_active: d.is_active,
+		})),
+	);
+
+const dayHours = (d: DaySchedule) =>
+	dayIntervals(d).reduce((sum, [start, end]) => sum + calcHours(start, end), 0);
+
+// Сколько слотов даст день: каждый отрезок режется встык, остаток отбрасывается
+// (так же считает генерация на бэкенде).
+const daySlots = (d: DaySchedule, duration: number) =>
+	dayIntervals(d).reduce(
+		(sum, [start, end]) => {
+			const minutes = toMinutes(end) - toMinutes(start);
+			return sum + Math.max(0, Math.floor(minutes / duration));
+		},
+		0,
+	);
+
+const validateDay = (d: DaySchedule): string | null => {
+	if (!d.is_active) return null;
+	if (!d.start_time || !d.end_time) return 'укажите начало и окончание работы';
+	if (toMinutes(d.end_time) <= toMinutes(d.start_time)) {
+		return 'окончание работы должно быть позже начала';
+	}
+	if (d.has_break) {
+		if (!d.break_start || !d.break_end) return 'укажите начало и конец перерыва';
+		if (!isBreakInside(d)) return 'перерыв должен быть внутри рабочего времени';
+	}
+	return null;
+};
 
 export default function WorkingHours() {
 	const token = localStorage.getItem('token') ?? '';
@@ -98,6 +218,8 @@ export default function WorkingHours() {
 	const [error, setError] = useState('');
 	const [saveError, setSaveError] = useState('');
 	const [saved, setSaved] = useState(false);
+	const [duration, setDuration] = useState(DEFAULT_DURATION);
+	const [originalDuration, setOriginalDuration] = useState(DEFAULT_DURATION);
 
 	const [slots, setSlots] = useState<Slot[]>([]);
 	const [slotsLoading, setSlotsLoading] = useState(false);
@@ -197,18 +319,16 @@ export default function WorkingHours() {
 		setLoading(true);
 		setError('');
 		try {
-			const data: DaySchedule[] = await getWorkingHours(token);
-			const sorted = DAY_ORDER.map(
-				(d) =>
-					data.find((x) => x.day_of_week === d) ?? {
-						day_of_week: d,
-						start_time: null,
-						end_time: null,
-						is_active: false,
-					},
-			);
-			setSchedule(sorted);
-			setOriginal(sorted);
+			const [data, profile] = await Promise.all([
+				getWorkingHours(token),
+				getPsyshologistProfile(token),
+			]);
+			const days = fromRanges(data as TemplateRange[]);
+			setSchedule(days);
+			setOriginal(days);
+			const minutes = profile?.session_duration_minutes ?? DEFAULT_DURATION;
+			setDuration(minutes);
+			setOriginalDuration(minutes);
 		} catch (e: any) {
 			setError(e.message || 'Ошибка при загрузке расписания');
 		} finally {
@@ -233,43 +353,29 @@ export default function WorkingHours() {
 		setSaveError('');
 		setSaved(false);
 
-		const isFullHour = (t: string | null) => {
-			if (!t) return true;
-			const [, mm] = toInput(t).split(':');
-			return mm === '00';
-		};
-
-		const invalidDay = schedule.find(
-			(d) => !isFullHour(d.start_time) || !isFullHour(d.end_time),
-		);
-		if (invalidDay) {
-			setSaveError(
-				`${DAY_NAMES[invalidDay.day_of_week]}: время должно быть целым числом часов (например, 09:00, 18:00)`,
-			);
-			return;
+		for (const d of schedule) {
+			const dayError = validateDay(d);
+			if (dayError) {
+				setSaveError(`${DAY_NAMES[d.day_of_week]}: ${dayError}`);
+				return;
+			}
 		}
 
 		setSaving(true);
 		try {
-			const payload = schedule
-				.filter((d) => d.start_time !== null && d.end_time !== null)
-				.map((d) => ({
-					day_of_week: d.day_of_week,
-					start_time: toApi(toInput(d.start_time)),
-					end_time: toApi(toInput(d.end_time)),
-					is_active: d.is_active,
-				}));
-			const resp = await updateWorkingHours(token, payload);
-			const updatedList: DaySchedule[] = Array.isArray(resp)
+			const resp = await updateWorkingHours(token, toRanges(schedule));
+			const updatedList: TemplateRange[] = Array.isArray(resp)
 				? resp
 				: (resp.ranges ?? []);
-			const sorted = DAY_ORDER.map(
-				(d) =>
-					updatedList.find((x: DaySchedule) => x.day_of_week === d) ??
-					schedule.find((x) => x.day_of_week === d)!,
-			);
-			setSchedule(sorted);
-			setOriginal(sorted);
+			const days = fromRanges(updatedList);
+			setSchedule(days);
+			setOriginal(days);
+			if (duration !== originalDuration) {
+				await updatePsyshologistProfile(token, {
+					session_duration_minutes: duration,
+				});
+				setOriginalDuration(duration);
+			}
 			setSaved(true);
 		} catch (e: any) {
 			setSaveError(e.message || 'Ошибка при сохранении');
@@ -280,14 +386,42 @@ export default function WorkingHours() {
 
 	const handleCancel = () => {
 		setSchedule(original);
+		setDuration(originalDuration);
 		setSaveError('');
 		setSaved(false);
 	};
 
+	const toggleBreak = (index: number, enabled: boolean) => {
+		const day = schedule[index];
+		// По умолчанию предлагаем 13:00–14:00, если это внутри рабочего дня.
+		const defaultBreak = {
+			break_start: DEFAULT_BREAK.start,
+			break_end: DEFAULT_BREAK.end,
+		};
+		const useDefault =
+			enabled &&
+			!day.break_start &&
+			isBreakInside({ ...day, has_break: true, ...defaultBreak });
+		updateDay(index, {
+			has_break: enabled,
+			...(useDefault ? defaultBreak : {}),
+		});
+	};
+
+	const changeDuration = (minutes: number) => {
+		setSaved(false);
+		setSaveError('');
+		setDuration(minutes);
+	};
+
+	const durationOptions = DURATION_OPTIONS.includes(duration)
+		? DURATION_OPTIONS
+		: [...DURATION_OPTIONS, duration].sort((a, b) => a - b);
+
 	const activeDays = schedule.filter((d) => d.is_active).length;
 	const totalHours = schedule
 		.filter((d) => d.is_active)
-		.reduce((sum, d) => sum + calcHours(d.start_time, d.end_time), 0);
+		.reduce((sum, d) => sum + dayHours(d), 0);
 
 	if (loading) {
 		return (
@@ -345,7 +479,7 @@ export default function WorkingHours() {
 								Часов в неделю
 							</p>
 							<p className='text-2xl font-bold text-gray-900 dark:text-white'>
-								{totalHours}
+								{formatHours(totalHours)}
 							</p>
 						</div>
 					</CardContent>
@@ -384,13 +518,15 @@ export default function WorkingHours() {
 										<div className='text-xs text-gray-600 dark:text-gray-300'>
 											{toInput(day.end_time) || '—'}
 										</div>
+										{isBreakInside(day) && (
+											<div className='text-xs text-amber-600 dark:text-amber-400 mt-1'>
+												обед {toInput(day.break_start)}–
+												{toInput(day.break_end)}
+											</div>
+										)}
 										{day.start_time && day.end_time && (
 											<div className='text-xs font-medium text-blue-600 dark:text-blue-400 mt-1'>
-												{calcHours(
-													day.start_time,
-													day.end_time,
-												)}
-												ч
+												{formatHours(dayHours(day))}ч
 											</div>
 										)}
 									</>
@@ -418,6 +554,34 @@ export default function WorkingHours() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
+					<div className='mb-6 p-4 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 flex flex-wrap items-end gap-4'>
+						<div className='space-y-1'>
+							<Label
+								htmlFor='session-duration'
+								className='text-sm text-gray-600 dark:text-gray-400'
+							>
+								Длительность сессии
+							</Label>
+							<select
+								id='session-duration'
+								value={duration}
+								onChange={(e) => changeDuration(Number(e.target.value))}
+								className='h-9 w-40 rounded-md border border-gray-300 bg-white px-3 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white'
+							>
+								{durationOptions.map((m) => (
+									<option key={m} value={m}>
+										{m} мин
+									</option>
+								))}
+							</select>
+						</div>
+						<p className='text-sm text-gray-500 dark:text-gray-400 max-w-xl'>
+							Рабочее время нарезается на слоты этой длительности.
+							Изменение действует для новых слотов: уже созданные
+							свободные слоты останутся прежними — удалите их и
+							сгенерируйте заново.
+						</p>
+					</div>
 					<div className='space-y-4'>
 						{schedule.map((day, index) => (
 							<div
@@ -468,7 +632,6 @@ export default function WorkingHours() {
 												<Clock className='w-4 h-4 text-gray-400' />
 												<Input
 													type='time'
-													step={3600}
 													value={toInput(
 														day.start_time,
 													)}
@@ -492,7 +655,6 @@ export default function WorkingHours() {
 												<Clock className='w-4 h-4 text-gray-400' />
 												<Input
 													type='time'
-													step={3600}
 													value={toInput(
 														day.end_time,
 													)}
@@ -511,13 +673,69 @@ export default function WorkingHours() {
 										{day.start_time && day.end_time && (
 											<div className='flex items-end'>
 												<span className='text-sm text-gray-500 dark:text-gray-400'>
-													{calcHours(
-														day.start_time,
-														day.end_time,
-													)}{' '}
-													ч рабочих
+													{formatHours(dayHours(day))} ч
+													рабочих · {daySlots(day, duration)}{' '}
+													слотов по {duration} мин
 												</span>
 											</div>
+										)}
+									</div>
+								)}
+
+								{day.is_active && (
+									<div className='mt-4 flex flex-wrap items-end gap-6'>
+										<div className='flex items-center gap-3 h-9'>
+											<Switch
+												id={`break-${day.day_of_week}`}
+												checked={day.has_break}
+												onCheckedChange={(v) =>
+													toggleBreak(index, v)
+												}
+											/>
+											<Label
+												htmlFor={`break-${day.day_of_week}`}
+												className='text-sm text-gray-600 dark:text-gray-300 cursor-pointer'
+											>
+												Перерыв
+											</Label>
+										</div>
+										{day.has_break && (
+											<>
+												<div className='space-y-1'>
+													<Label className='text-sm text-gray-600 dark:text-gray-400'>
+														Начало перерыва
+													</Label>
+													<Input
+														type='time'
+														value={toInput(day.break_start)}
+														onChange={(e) =>
+															updateDay(index, {
+																break_start: e.target.value
+																	? `${e.target.value}:00`
+																	: null,
+															})
+														}
+														className='w-36 cursor-pointer dark:bg-gray-800 dark:border-gray-600 dark:text-white'
+													/>
+												</div>
+												<div className='space-y-1'>
+													<Label className='text-sm text-gray-600 dark:text-gray-400'>
+														Конец перерыва
+													</Label>
+													<Input
+														type='time'
+														value={toInput(day.break_end)}
+														onChange={(e) =>
+															updateDay(index, {
+																break_end: e.target.value
+																	? `${e.target.value}:00`
+																	: null,
+															})
+														}
+														className='w-36 cursor-pointer dark:bg-gray-800 dark:border-gray-600 dark:text-white'
+													/>
+												</div>
+											</>
 										)}
 									</div>
 								)}

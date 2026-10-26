@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { useUser } from '../context/UserContext';
 import { updateUser, updateUserPhoto } from '../../api/profile';
+import { birthDateMax, birthDateMin, validateBirthDate } from '../birthDate';
 import {
 	updatePsyshologistProfile,
 	updatePsychologistPhoto,
@@ -113,9 +114,14 @@ function ClientProfile() {
 
 	const handleSave = async () => {
 		const token = localStorage.getItem('token') ?? '';
-		setSaving(true);
 		setError('');
 		setSuccess(false);
+		const birthDateError = birthDate ? validateBirthDate(birthDate) : null;
+		if (birthDateError) {
+			setError(birthDateError);
+			return;
+		}
+		setSaving(true);
 		try {
 			await updateUser(token, {
 				name: name.trim() || null,
@@ -186,6 +192,8 @@ function ClientProfile() {
 							</Label>
 							<Input
 								type='date'
+								min={birthDateMin()}
+								max={birthDateMax()}
 								value={birthDate}
 								onChange={(e) => setBirthDate(e.target.value)}
 								className={inputCls}

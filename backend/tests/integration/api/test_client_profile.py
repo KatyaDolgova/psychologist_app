@@ -38,6 +38,16 @@ class TestClientProfileEndpoints:
                 200,
             ),
             ("test14@gmail.com", {"name": "Alex"}, 422),
+            (
+                get_random_user_email(),
+                {"name": "Future", "birth_date": "2999-01-01", "gender": "MALE"},
+                422,
+            ),
+            (
+                get_random_user_email(),
+                {"name": "Ancient", "birth_date": "1800-01-01", "gender": "MALE"},
+                422,
+            ),
         ],
     )
     async def test_send_survey(self, client, db_session, mail, json, code):
@@ -121,6 +131,9 @@ class TestClientProfileEndpoints:
             (get_random_user_email(), {"name": "string", "phone": "   "}, 200),
             (get_random_user_email(), {"phone": "string"}, 422),
             (get_random_user_email(), {"email": "meow"}, 422),
+            (get_random_user_email(), {"birth_date": "2999-01-01"}, 422),
+            (get_random_user_email(), {"birth_date": "0001-01-01"}, 422),
+            (get_random_user_email(), {"birth_date": None}, 200),
         ],
     )
     @pytest.mark.asyncio

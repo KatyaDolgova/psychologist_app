@@ -13,11 +13,11 @@ def normalize_and_validate_phone(phone: str, default_region: str = None) -> str:
     try:
         phone_obj = phonenumbers.parse(phone, default_region)
         if not phonenumbers.is_possible_number(phone_obj):
-            raise ValueError("Invalid phone number format")
+            raise ValueError("Неверный формат номера телефона")
         if not phonenumbers.is_valid_number(phone_obj):
-            raise ValueError("Invalid phone number format")
+            raise ValueError("Неверный формат номера телефона")
         return phonenumbers.format_number(
             phone_obj, phonenumbers.PhoneNumberFormat.E164
         )
     except phonenumbers.NumberParseException:
-        raise ValueError("Invalid phone number format")
+        raise ValueError("Неверный формат номера телефона")
