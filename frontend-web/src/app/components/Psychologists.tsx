@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
 	Search,
@@ -298,6 +298,17 @@ export default function Psychologists() {
 	const [error, setError] = useState('');
 	const [search, setSearch] = useState('');
 	const [bookedId, setBookedId] = useState<number | null>(null);
+	const bookedTimer = useRef<ReturnType<typeof setTimeout>>();
+
+	// Сообщение «Запись создана» показывается над кнопкой и скрывается само,
+	// кнопка «Записаться» остаётся доступной для следующей записи.
+	const showBooked = (id: number) => {
+		setBookedId(id);
+		clearTimeout(bookedTimer.current);
+		bookedTimer.current = setTimeout(() => setBookedId(null), 4000);
+	};
+
+	useEffect(() => () => clearTimeout(bookedTimer.current), []);
 	const [togglingId, setTogglingId] = useState<number | null>(null);
 	const [startingChatId, setStartingChatId] = useState<number | null>(null);
 	const [confirmRemove, setConfirmRemove] = useState<{
@@ -547,19 +558,16 @@ export default function Psychologists() {
 										)}
 									</div>
 
+									{bookedId === p.id && (
+										<p className='mb-2 text-center text-sm text-green-600 dark:text-green-400 font-medium'>
+											Запись создана ✓
+										</p>
+									)}
 									<div className='flex gap-2'>
-										{bookedId === p.id ? (
-											<div className='flex-1 text-center py-2 text-sm text-green-600 dark:text-green-400 font-medium'>
-												Запись создана ✓
-											</div>
-										) : (
-											<BookingDialog
-												psychologist={p}
-												onBooked={() =>
-													setBookedId(p.id)
-												}
-											/>
-										)}
+										<BookingDialog
+											psychologist={p}
+											onBooked={() => showBooked(p.id)}
+										/>
 									</div>
 								</CardContent>
 							</Card>
