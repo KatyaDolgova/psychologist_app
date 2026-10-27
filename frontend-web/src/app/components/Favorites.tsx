@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Heart, Loader2, CalendarPlus } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
@@ -284,6 +284,17 @@ export default function Favorites() {
 		name: string;
 	} | null>(null);
 	const [bookedId, setBookedId] = useState<number | null>(null);
+	const bookedTimer = useRef<ReturnType<typeof setTimeout>>();
+
+	// Сообщение «Запись создана» показывается над кнопкой и скрывается само,
+	// кнопка «Записаться» остаётся доступной для следующей записи.
+	const showBooked = (id: number) => {
+		setBookedId(id);
+		clearTimeout(bookedTimer.current);
+		bookedTimer.current = setTimeout(() => setBookedId(null), 4000);
+	};
+
+	useEffect(() => () => clearTimeout(bookedTimer.current), []);
 
 	const fetchFavorites = async () => {
 		setLoading(true);
@@ -405,17 +416,18 @@ export default function Favorites() {
 									</div>
 								)}
 
-								<div className='flex gap-2 mt-4'>
-									{bookedId === p.id ? (
-										<div className='flex-1 text-center py-2 text-sm text-green-600 dark:text-green-400 font-medium'>
-											Запись создана ✓
-										</div>
-									) : (
-										<BookingDialog
-											psychologist={p}
-											onBooked={() => setBookedId(p.id)}
-										/>
-									)}
+								{bookedId === p.id && (
+									<p className='mt-4 text-center text-sm text-green-600 dark:text-green-400 font-medium'>
+										Запись создана ✓
+									</p>
+								)}
+								<div
+									className={`flex gap-2 ${bookedId === p.id ? 'mt-2' : 'mt-4'}`}
+								>
+									<BookingDialog
+										psychologist={p}
+										onBooked={() => showBooked(p.id)}
+									/>
 								</div>
 							</CardContent>
 						</Card>
