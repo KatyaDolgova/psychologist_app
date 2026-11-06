@@ -2,6 +2,7 @@ from src.models.enums.chats import ChatType
 from src.models.enums.payment_methods import PaymentMethodType, TransactionStatus
 from src.models.enums.schedules import DayOfWeek
 from src.models.enums.slots import SlotSource, SlotStatus
+from src.models.enums.transcripts import TranscriptionModel, TranscriptStatus
 from src.models.enums.users import (
     AdminRole,
     ClientSessionFormat,
@@ -30,4 +31,6 @@ __all__ = [
     "DayOfWeek",
     "SlotStatus",
     "SlotSource",
+    "TranscriptStatus",
+    "TranscriptionModel",
 ]

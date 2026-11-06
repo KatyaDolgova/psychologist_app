@@ -19,8 +19,20 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /build
-COPY requirements.txt requirements-test.txt ./
+COPY requirements.txt requirements-test.txt requirements-transcribe.txt ./
 RUN pip install -r requirements.txt -r requirements-test.txt
+
+# faster-whisper тяжёлый: ставим только в образ воркера (INSTALL_TRANSCRIBE=1).
+# libctranslate2 помечена как требующая исполняемого стека, а Docker Desktop (WSL2) и
+# многие ядра это запрещают: import падает с "cannot enable executable stack".
+# Библиотеке стек не нужен, поэтому сбрасываем флаг (проверено: до - X, после - import OK).
+ARG INSTALL_TRANSCRIBE=0
+RUN if [ "$INSTALL_TRANSCRIBE" = "1" ]; then \
+        pip install -r requirements-transcribe.txt \
+        && pip install patchelf \
+        && find /opt/venv -name 'libctranslate2*.so*' -exec patchelf --clear-execstack {} + \
+        && pip uninstall -y patchelf; \
+    fi
 
 # ---------- runtime ----------
 FROM python:3.12-slim AS runtime
@@ -36,8 +48,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system --gid 1000 app \
     && useradd  --system --uid 1000 --gid app --home /app --shell /sbin/nologin app \
-    && mkdir -p /app/static \
-    && chown -R app:app /app
+    && mkdir -p /app/static /models \
+    && chown -R app:app /app /models
+
+# Кэш скачанных моделей Whisper (в compose — отдельный volume).
+ENV HF_HOME=/models
 
 COPY --from=builder /opt/venv /opt/venv
 

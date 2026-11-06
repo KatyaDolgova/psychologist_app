@@ -10,6 +10,8 @@ from src.crud.impl import (
     ClientDAO,
     ClientNoteDAO,
     FavoritesDAO,
+    LessonDAO,
+    LessonTranscriptDAO,
     PaymentMethodDAO,
     PsychologistDAO,
     UserDAO,
@@ -57,6 +59,8 @@ class Store:
         self._client_note_dao: ClientNoteDAO | None = None
         self._working_hours_dao: WorkingHoursDAO | None = None
         self._availability_slot_dao: AvailabilitySlotsDAO | None = None
+        self._lesson_dao: LessonDAO | None = None
+        self._lesson_transcript_dao: LessonTranscriptDAO | None = None
 
     @property
     def session(self) -> AsyncSession:
@@ -204,3 +208,17 @@ class Store:
         if self._working_hours_dao is None:
             self._working_hours_dao = WorkingHoursDAO(session=self._session)
         return self._working_hours_dao
+
+    @property
+    def lesson(self) -> LessonDAO:
+        """Возвращает интерфейс для работы с уроками."""
+        if self._lesson_dao is None:
+            self._lesson_dao = LessonDAO(session=self._session)
+        return self._lesson_dao
+
+    @property
+    def lesson_transcript(self) -> LessonTranscriptDAO:
+        """Возвращает интерфейс для работы с транскриптами уроков."""
+        if self._lesson_transcript_dao is None:
+            self._lesson_transcript_dao = LessonTranscriptDAO(session=self._session)
+        return self._lesson_transcript_dao

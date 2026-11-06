@@ -36,6 +36,36 @@ services:
             db:
                 condition: service_healthy
 
+    worker:
+        container_name: worker
+        build:
+            context: backend
+            dockerfile: Dockerfile
+            args:
+                INSTALL_TRANSCRIBE: '1'
+        restart: unless-stopped
+        env_file:
+            - .env
+        environment:
+            - RUN_MIGRATIONS=0
+        working_dir: /app
+        # concurrency=1: распознавание грузит все ядра процессора.
+        command:
+            - celery
+            - -A
+            - src.tasks.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency=1
+        volumes:
+            - ./backend:/app
+            - whisper_models:/models
+        depends_on:
+            db:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+
     redis:
         image: redis:alpine
         container_name: redis-prod
@@ -87,3 +117,4 @@ volumes:
     simul_db_data:
     simul_redis_data:
     frontend_node_modules:
+    whisper_models:

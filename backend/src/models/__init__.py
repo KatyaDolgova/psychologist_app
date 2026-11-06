@@ -9,10 +9,13 @@ from src.models.enums import (
     SlotSource,
     SlotStatus,
     TransactionStatus,
+    TranscriptStatus,
     UserGender,
     UserRole,
 )
 from src.models.favorites import UserFavorite
+from src.models.lesson import Lesson
+from src.models.lesson_transcript import LessonTranscript
 from src.models.payment_method import PaymentMethod
 from src.models.psychologist import PsychologistProfile
 from src.models.psychologist_schedule import PsychologistWorkingHours
@@ -41,4 +44,7 @@ __all__ = [
     "AvailabilitySlot",
     "SlotStatus",
     "SlotSource",
+    "Lesson",
+    "LessonTranscript",
+    "TranscriptStatus",
 ]
