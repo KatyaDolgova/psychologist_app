@@ -64,10 +64,11 @@ async def test_prompt_is_lesson_topic_when_given(store):
     assert job.prompt == "унитарное и федеративное"
 
 
-async def test_prompt_falls_back_to_lesson_title(store, transcript):
+async def test_no_prompt_when_topic_is_not_given(store, transcript):
+    # Название урока в подсказку не подставляется: см. docstring start_processing.
     job = await pipeline.start_processing(store, transcript.id)
 
-    assert job.prompt == "Урок"
+    assert job.prompt is None
 
 
 async def test_start_processing_skips_finished_transcript(store, transcript):

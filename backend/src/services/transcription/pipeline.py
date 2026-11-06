@@ -20,8 +20,10 @@ class ProcessingJob:
 async def start_processing(store: Store, transcript_id: UUID) -> ProcessingJob | None:
     """Переводит транскрипт в PROCESSING и возвращает аудио, подсказку и вариант модели.
 
-    Подсказка — тема урока, а если она не указана, его название.
-    Возвращает None, если транскрипт не найден, уже обработан или без аудио —
+    Подсказка - только тема, которую автор указал сам. Название урока в подсказку
+    не подставляется: Whisper подстраивает под подсказку и стиль текста, и короткое
+    строчное название вроде "lecture3" лишает транскрипт заглавных букв и пунктуации.
+    Возвращает None, если транскрипт не найден, уже обработан или без аудио -
     задача тогда ничего не делает (повторный запуск Celery безопасен).
     """
     transcript = await store.lesson_transcript.find_by_id(model_id=transcript_id)
@@ -42,7 +44,7 @@ async def start_processing(store: Store, transcript_id: UUID) -> ProcessingJob |
     )
     return ProcessingJob(
         audio_path=lesson.audio_path,
-        prompt=lesson.topic or lesson.title,
+        prompt=lesson.topic,
         model=lesson.transcription_model,
     )
 
