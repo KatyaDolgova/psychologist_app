@@ -215,6 +215,30 @@ class NotAppointmentAttendeeError(BaseError):
     detail = "Клиент не является участником этой записи"
 
 
+# --- Уроки и транскрибация ------------------------------------------------
+
+
+class LessonNotFoundError(BaseError):
+    """Урок не найден (или принадлежит другому пользователю)."""
+
+    status_code = status.HTTP_404_NOT_FOUND
+    detail = "Урок не найден"
+
+
+class UnsupportedAudioFormatError(BaseError):
+    """Загружен файл неподдерживаемого формата."""
+
+    status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+    detail = "Неподдерживаемый формат файла"
+
+
+class AudioFileTooLargeError(BaseError):
+    """Файл больше допустимого размера."""
+
+    status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+    detail = "Файл слишком большой"
+
+
 class AppointmentAlreadyCancelledError(BaseError):
     """Попытка отменить запись, которая уже отменена."""
 

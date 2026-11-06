@@ -1,0 +1,15 @@
+# Только для образа Celery-воркера транскрибации (тяжёлые зависимости).
+# В основной requirements.txt не добавляется, чтобы не раздувать образ API.
+faster-whisper==1.1.1
+
+# faster-whisper 1.1.1 не ограничивает версии зависимостей сверху, и свежие
+# релизы ломают его (проверено на Windows, Python 3.12):
+#  - av 19.0.2: нет параметра metadata_errors, декодирование падает с TypeError
+#    (промежуточные версии 17-18 не проверялись);
+#  - ctranslate2 4.8.5 и onnxruntime 1.31: процесс падает с access violation.
+# Ниже набор, на котором распознавание реально отработало.
+av==16.1.0
+ctranslate2==4.5.0
+onnxruntime==1.20.1
+# ctranslate2 4.5.0 импортирует pkg_resources, а в venv Python 3.12 setuptools нет.
+setuptools<81

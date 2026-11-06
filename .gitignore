@@ -64,3 +64,5 @@ expo-env.d.ts
 .claude
 docs/superpowers/
 CLAUDE.md
+# Загруженные записи уроков (приватные, не для git)
+backend/media/
