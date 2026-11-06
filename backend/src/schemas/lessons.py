@@ -12,6 +12,11 @@ class ModelOptionSchema(BaseModel):
     description: str
 
 
+class RetryTranscriptionRequest(BaseModel):
+    # Вариант для повторного запуска; если не указан, остаётся прежний у урока.
+    model: TranscriptionModel | None = None
+
+
 class LessonSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

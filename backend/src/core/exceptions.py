@@ -239,6 +239,20 @@ class AudioFileTooLargeError(BaseError):
     detail = "Файл слишком большой"
 
 
+class TranscriptionInProgressError(BaseError):
+    """Повторный запуск, пока транскрибация ещё выполняется."""
+
+    status_code = status.HTTP_409_CONFLICT
+    detail = "Транскрибация уже выполняется"
+
+
+class AudioFileMissingError(BaseError):
+    """Файла записи нет на диске, пересчитывать нечего."""
+
+    status_code = status.HTTP_409_CONFLICT
+    detail = "Файл записи урока не найден на сервере"
+
+
 class AppointmentAlreadyCancelledError(BaseError):
     """Попытка отменить запись, которая уже отменена."""
 

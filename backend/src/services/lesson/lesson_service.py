@@ -7,9 +7,11 @@ from fastapi import Depends, UploadFile
 from src.config import settings
 from src.core.dependencies import get_store
 from src.core.exceptions import (
+    AudioFileMissingError,
     AudioFileTooLargeError,
     LessonNotFoundError,
     NotFoundException,
+    TranscriptionInProgressError,
     UnsupportedAudioFormatError,
     ValidationException,
 )
@@ -86,6 +88,49 @@ class LessonService:
         transcribe_lesson_task.delay(str(transcript.id))
         lesson = await self._store.lesson.find_by_id(model_id=lesson_id)
         return self._to_schema(lesson, transcript.status)
+
+    async def retry_transcription(
+        self,
+        teacher_id: int,
+        lesson_id: UUID,
+        model: TranscriptionModel | None = None,
+    ) -> LessonSchema:
+        """Запускает транскрибацию урока заново (после сбоя или другим вариантом).
+
+        Прежний результат стирается. model меняет вариант транскрибации урока;
+        без него используется тот, что выбран у урока.
+        """
+        lesson = await self._get_owned_lesson(teacher_id, lesson_id)
+        transcript = await self._store.lesson_transcript.find_one_or_none(
+            lesson_id=lesson_id
+        )
+        if transcript is None:
+            raise NotFoundException("Транскрипт урока не найден")
+        # Параллельный второй запуск того же файла только впустую грузил бы процессор.
+        if transcript.status == TranscriptStatus.PROCESSING:
+            raise TranscriptionInProgressError
+        if not lesson.audio_path or not Path(lesson.audio_path).is_file():
+            raise AudioFileMissingError
+
+        if model is not None and model != lesson.transcription_model:
+            await self._store.lesson.update(
+                model_id=lesson_id, return_model=False, transcription_model=model
+            )
+        await self._store.lesson_transcript.update(
+            model_id=transcript.id,
+            return_model=False,
+            status=TranscriptStatus.PENDING,
+            language=None,
+            segments=None,
+            error=None,
+            note=None,
+        )
+        # Коммитим до постановки задачи: иначе воркер может увидеть старое состояние.
+        await self._store.session.commit()
+
+        transcribe_lesson_task.delay(str(transcript.id))
+        lesson = await self._store.lesson.find_by_id(model_id=lesson_id)
+        return self._to_schema(lesson, TranscriptStatus.PENDING)
 
     async def get_lesson(self, teacher_id: int, lesson_id: UUID) -> LessonSchema:
         lesson = await self._get_owned_lesson(teacher_id, lesson_id)

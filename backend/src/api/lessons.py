@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 
 from src.core.dependencies import get_any_user_id
 from src.models.enums.transcripts import TranscriptionModel
-from src.schemas.lessons import LessonSchema, ModelOptionSchema, TranscriptSchema
+from src.schemas.lessons import (
+    LessonSchema,
+    ModelOptionSchema,
+    RetryTranscriptionRequest,
+    TranscriptSchema,
+)
 from src.services.lesson import LessonService
 
 router = APIRouter(tags=["Lessons"])
@@ -65,6 +70,28 @@ async def get_lesson(
     service: LessonService = Depends(),
 ) -> LessonSchema:
     return await service.get_lesson(teacher_id=user_id, lesson_id=lesson_id)
+
+
+@router.post(
+    "/{lesson_id}/retry",
+    summary="Повторить транскрибацию",
+    description=(
+        "Запускает транскрибацию урока заново: после сбоя или чтобы получить текст другим "
+        "вариантом (поле model). Прежний результат стирается. Пока транскрибация "
+        "выполняется, вернёт 409."
+    ),
+)
+async def retry_transcription(
+    lesson_id: UUID,
+    data: RetryTranscriptionRequest | None = None,
+    user_id: int = Depends(get_any_user_id),
+    service: LessonService = Depends(),
+) -> LessonSchema:
+    return await service.retry_transcription(
+        teacher_id=user_id,
+        lesson_id=lesson_id,
+        model=data.model if data else None,
+    )
 
 
 @router.get(

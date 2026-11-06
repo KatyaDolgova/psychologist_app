@@ -150,3 +150,45 @@ def test_other_users_lesson_is_hidden(authed_psy, psy_id):
 
     assert authed_psy.get(f"/lessons/{lesson_id}").status_code == 404
     assert authed_psy.get(f"/lessons/{lesson_id}/transcript").status_code == 404
+
+
+def test_retry_requeues_the_transcription(authed_psy, isolated_uploads):
+    lesson_id = _upload(authed_psy).json()["id"]
+    assert len(isolated_uploads) == 1
+
+    resp = authed_psy.post(f"/lessons/{lesson_id}/retry")
+
+    assert resp.status_code == 200
+    assert resp.json()["transcript_status"] == "PENDING"
+    assert len(isolated_uploads) == 2
+
+
+def test_retry_can_choose_another_variant(authed_psy):
+    lesson_id = _upload(authed_psy, model="fast").json()["id"]
+
+    resp = authed_psy.post(f"/lessons/{lesson_id}/retry", json={"model": "quality"})
+
+    assert resp.status_code == 200
+    assert resp.json()["transcription_model"] == "quality"
+    got = authed_psy.get(f"/lessons/{lesson_id}").json()
+    assert got["transcription_model"] == "quality"
+
+
+def test_retry_rejects_unknown_variant(authed_psy, isolated_uploads):
+    lesson_id = _upload(authed_psy).json()["id"]
+
+    resp = authed_psy.post(f"/lessons/{lesson_id}/retry", json={"model": "huge"})
+
+    assert resp.status_code == 422
+    assert len(isolated_uploads) == 1
+
+
+def test_retry_of_unknown_lesson_returns_404(authed_psy):
+    assert authed_psy.post(f"/lessons/{uuid.uuid4()}/retry").status_code == 404
+
+
+def test_retry_of_other_users_lesson_returns_404(authed_psy, psy_id):
+    lesson_id = _upload(authed_psy).json()["id"]
+    app.dependency_overrides[get_any_user_id] = lambda: psy_id + 1000
+
+    assert authed_psy.post(f"/lessons/{lesson_id}/retry").status_code == 404
