@@ -23,8 +23,16 @@ COPY requirements.txt requirements-test.txt requirements-transcribe.txt ./
 RUN pip install -r requirements.txt -r requirements-test.txt
 
 # faster-whisper тяжёлый: ставим только в образ воркера (INSTALL_TRANSCRIBE=1).
+# libctranslate2 помечена как требующая исполняемого стека, а Docker Desktop (WSL2) и
+# многие ядра это запрещают: import падает с "cannot enable executable stack".
+# Библиотеке стек не нужен, поэтому сбрасываем флаг (проверено: до - X, после - import OK).
 ARG INSTALL_TRANSCRIBE=0
-RUN if [ "$INSTALL_TRANSCRIBE" = "1" ]; then pip install -r requirements-transcribe.txt; fi
+RUN if [ "$INSTALL_TRANSCRIBE" = "1" ]; then \
+        pip install -r requirements-transcribe.txt \
+        && pip install patchelf \
+        && find /opt/venv -name 'libctranslate2*.so*' -exec patchelf --clear-execstack {} + \
+        && pip uninstall -y patchelf; \
+    fi
 
 # ---------- runtime ----------
 FROM python:3.12-slim AS runtime
