@@ -65,6 +65,7 @@ def upgrade() -> None:
         sa.Column("language", sa.String(length=16), nullable=True),
         sa.Column("segments", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("error", sa.Text(), nullable=True),
+        sa.Column("note", sa.Text(), nullable=True),
         sa.Column(
             "created_at",
             sa.TIMESTAMP(timezone=True),

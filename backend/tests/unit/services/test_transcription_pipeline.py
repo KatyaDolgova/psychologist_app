@@ -114,6 +114,28 @@ async def test_save_result_stores_segments(store, transcript):
     assert refreshed.segments[1]["start"] == 2.5
 
 
+async def test_save_result_stores_note(store, transcript):
+    await pipeline.save_result(
+        store,
+        transcript.id,
+        TranscriptionResult(language="ru", segments=[]),
+        note="использован запасной вариант",
+    )
+
+    refreshed = await store.lesson_transcript.find_by_id(model_id=transcript.id)
+    assert refreshed.status == TranscriptStatus.DONE
+    assert refreshed.note == "использован запасной вариант"
+
+
+async def test_save_result_without_note_leaves_it_empty(store, transcript):
+    await pipeline.save_result(
+        store, transcript.id, TranscriptionResult(language="ru", segments=[])
+    )
+
+    refreshed = await store.lesson_transcript.find_by_id(model_id=transcript.id)
+    assert refreshed.note is None
+
+
 async def test_save_failure_truncates_error(store, transcript):
     await pipeline.save_failure(store, transcript.id, "x" * 5000)
 

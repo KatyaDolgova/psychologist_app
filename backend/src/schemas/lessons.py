@@ -38,6 +38,7 @@ class TranscriptSchema(BaseModel):
     language: str | None = None
     segments: list[SegmentSchema] = []
     error: str | None = None
+    note: str | None = None
     updated_at: datetime
 
     @field_validator("segments", mode="before")

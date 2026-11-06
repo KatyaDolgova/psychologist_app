@@ -48,7 +48,10 @@ async def start_processing(store: Store, transcript_id: UUID) -> ProcessingJob |
 
 
 async def save_result(
-    store: Store, transcript_id: UUID, result: TranscriptionResult
+    store: Store,
+    transcript_id: UUID,
+    result: TranscriptionResult,
+    note: str | None = None,
 ) -> None:
     await store.lesson_transcript.update(
         model_id=transcript_id,
@@ -57,6 +60,7 @@ async def save_result(
         language=result.language,
         segments=[segment.to_dict() for segment in result.segments],
         error=None,
+        note=note,
     )
 
 

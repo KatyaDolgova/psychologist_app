@@ -30,3 +30,6 @@ class LessonTranscript(BaseWithTimestamps):
         JSON().with_variant(JSONB(), "postgresql"), nullable=True
     )
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Предупреждение при успешном результате (например, модель зациклилась и
+    # текст получен запасным вариантом). Не ошибка: транскрипт при этом DONE.
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

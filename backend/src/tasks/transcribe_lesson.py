@@ -5,7 +5,7 @@ from src.config import settings
 from src.core.db.database import async_session_maker
 from src.crud import Store
 from src.services.transcription import pipeline
-from src.services.transcription.factory import get_transcriber
+from src.services.transcription.guarded import transcribe_guarded
 from src.tasks.celery_app import celery_app
 
 
@@ -20,13 +20,14 @@ async def _run(transcript_id: UUID) -> None:
         return
 
     try:
-        transcriber = get_transcriber(job.model)
-        # Распознавание синхронное и тяжёлое - уводим из event loop.
-        result = await asyncio.to_thread(
-            transcriber.transcribe,
+        # Распознавание синхронное и тяжёлое - уводим из event loop. Внутри результат
+        # проверяется на зацикливание модели, при необходимости запускается запасной вариант.
+        guarded = await asyncio.to_thread(
+            transcribe_guarded,
             job.audio_path,
             settings.TRANSCRIBE_LANGUAGE,
             job.prompt,
+            job.model,
         )
     except Exception as exc:
         async with async_session_maker() as session:
@@ -35,7 +36,9 @@ async def _run(transcript_id: UUID) -> None:
         return
 
     async with async_session_maker() as session:
-        await pipeline.save_result(Store(session=session), transcript_id, result)
+        await pipeline.save_result(
+            Store(session=session), transcript_id, guarded.result, note=guarded.note
+        )
         await session.commit()
 
 
