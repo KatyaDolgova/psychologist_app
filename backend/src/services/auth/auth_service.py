@@ -50,7 +50,7 @@ class AuthService:
         self,
         email: str,
         code: str,
-        user_type: Literal["client", "psychologist"] = "client",
+        user_type: Literal["client", "specialist"] = "client",
     ) -> AuthResponse:
         is_success_code = await self._sms_service.verify(
             email=email, submitted_code=code
@@ -61,8 +61,8 @@ class AuthService:
 
         await self._sms_service.delete(email=email)
 
-        if user_type == "psychologist":
-            user_id = await self._store.user.get_or_create_psychologist(email=email)
+        if user_type == "specialist":
+            user_id = await self._store.user.get_or_create_specialist(email=email)
         else:
             user_id = await self._store.user.get_or_create_client(email=email)
 

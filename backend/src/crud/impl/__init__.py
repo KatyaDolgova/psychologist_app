@@ -9,7 +9,7 @@ from src.crud.impl.favorites import FavoritesDAO
 from src.crud.impl.lesson import LessonDAO
 from src.crud.impl.lesson_transcript import LessonTranscriptDAO
 from src.crud.impl.payment_method import PaymentMethodDAO
-from src.crud.impl.psychologist import PsychologistDAO
+from src.crud.impl.specialist import SpecialistDAO
 from src.crud.impl.user import UserDAO
 from src.crud.impl.working_hours import WorkingHoursDAO
 
@@ -19,7 +19,7 @@ __all__ = [
     "ClientNoteDAO",
     "PaymentMethodDAO",
     "FavoritesDAO",
-    "PsychologistDAO",
+    "SpecialistDAO",
     "ChatsDAO",
     "ChatMembersDAO",
     "ChatMessagesDAO",

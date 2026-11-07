@@ -23,12 +23,12 @@ MAX_GENERATION_RANGE_DAYS = 180
 
 
 class SlotGenerationService:
-    """Сервис материализации слотов из недельного шаблона психолога.
+    """Сервис материализации слотов из недельного шаблона специалиста.
 
     Берёт активные диапазоны шаблона, перебирает дни в указанном окне,
     режет каждый диапазон на слоты длиной session_duration_minutes
-    из профиля психолога, конвертирует локальное время в UTC
-    через psy.timezone и вставляет с ON CONFLICT DO NOTHING
+    из профиля специалиста, конвертирует локальное время в UTC
+    через specialist.timezone и вставляет с ON CONFLICT DO NOTHING
     """
 
     def __init__(self, store: Store = Depends(get_store)):
@@ -36,7 +36,7 @@ class SlotGenerationService:
 
     async def generate_for_range(
         self,
-        psychologist_id: int,
+        specialist_id: int,
         from_date: date,
         to_date: date,
     ) -> tuple[int, int]:
@@ -44,7 +44,7 @@ class SlotGenerationService:
 
         Returns:
             (created, skipped): сколько вставлено и сколько пропущено
-            из-за конфликта на (psychologist_id, starts_at).
+            из-за конфликта на (specialist_id, starts_at).
 
         Raises:
             SlotRangeTooWideError: если to_date - from_date > MAX_GENERATION_RANGE_DAYS.
@@ -52,7 +52,7 @@ class SlotGenerationService:
         if (to_date - from_date).days > MAX_GENERATION_RANGE_DAYS:
             raise SlotRangeTooWideError()
 
-        profile = await self._store.psychologist.find_by_id(model_id=psychologist_id)
+        profile = await self._store.specialist.find_by_id(model_id=specialist_id)
         if profile is None:
             return 0, 0
 
@@ -60,7 +60,7 @@ class SlotGenerationService:
         duration = timedelta(minutes=profile.session_duration_minutes)
 
         template_rows = await self._store.working_hours.get_active(
-            psychologist_id=psychologist_id
+            specialist_id=specialist_id
         )
         if not template_rows:
             return 0, 0
@@ -81,7 +81,7 @@ class SlotGenerationService:
                 while t + duration <= window_end_local:
                     rows_to_insert.append(
                         {
-                            "psychologist_id": psychologist_id,
+                            "specialist_id": specialist_id,
                             "starts_at": t.astimezone(timezone.utc),
                             "ends_at": (t + duration).astimezone(timezone.utc),
                             "status": SlotStatus.FREE,
@@ -96,13 +96,13 @@ class SlotGenerationService:
         total_candidates = len(rows_to_insert)
 
         # Отфильтровываем кандидатов, пересекающихся с уже существующими слотами.
-        # Это покрывает случай, когда у психолога меняется session_duration_minutes
+        # Это покрывает случай, когда у специалиста меняется session_duration_minutes
         # или есть одноразовые слоты с другой длительностью: ON CONFLICT по
-        # (psy, starts_at) ловит только точное совпадение времени начала.
+        # (specialist, starts_at) ловит только точное совпадение времени начала.
         min_start = min(r["starts_at"] for r in rows_to_insert)
         max_end = max(r["ends_at"] for r in rows_to_insert)
         existing = await self._store.availability_slot.find_overlapping(
-            psychologist_id=psychologist_id,
+            specialist_id=specialist_id,
             starts_at=min_start,
             ends_at=max_end,
         )

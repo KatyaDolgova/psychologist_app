@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import case, func, select, update
 
 from src.crud.impl.base import BaseDAO
-from src.models import ChatMessage, ClientProfile, PsychologistProfile
+from src.models import ChatMessage, ClientProfile, SpecialistProfile
 
 
 class ChatMessagesDAO(BaseDAO):
@@ -40,7 +40,7 @@ class ChatMessagesDAO(BaseDAO):
         limit: int = 50,
     ) -> list:
         cp = ClientProfile.__table__.alias("cp")
-        pp = PsychologistProfile.__table__.alias("pp")
+        sp = SpecialistProfile.__table__.alias("sp")
 
         conditions = [ChatMessage.chat_id == chat_id]
 
@@ -67,16 +67,16 @@ class ChatMessagesDAO(BaseDAO):
                 ChatMessage.updated_at,
                 case(
                     (cp.c.id.is_not(None), cp.c.name),
-                    else_=func.concat(pp.c.first_name, " ", pp.c.last_name),
+                    else_=func.concat(sp.c.first_name, " ", sp.c.last_name),
                 ).label("author_name"),
-                func.coalesce(cp.c.avatar, pp.c.avatar).label("author_avatar"),
+                func.coalesce(cp.c.avatar, sp.c.avatar).label("author_avatar"),
                 case(
                     (cp.c.id.is_not(None), "CLIENT"),
-                    else_="PSYCHOLOGIST",
+                    else_="SPECIALIST",
                 ).label("author_role"),
             )
             .outerjoin(cp, cp.c.id == ChatMessage.author_id)
-            .outerjoin(pp, pp.c.id == ChatMessage.author_id)
+            .outerjoin(sp, sp.c.id == ChatMessage.author_id)
             .where(*conditions)
             .order_by(ChatMessage.created_at.desc())
             .limit(limit)

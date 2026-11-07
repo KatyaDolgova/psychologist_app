@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 
 from src.core.wrapper import handle_db_errors
 from src.crud.impl.base import BaseDAO
-from src.models import AdminProfile, ClientProfile, PsychologistProfile, User, UserRole
+from src.models import AdminProfile, ClientProfile, SpecialistProfile, User, UserRole
 
 
 class UserDAO(BaseDAO):
@@ -86,12 +86,12 @@ class UserDAO(BaseDAO):
         return uid
 
     @handle_db_errors
-    async def get_or_create_psychologist(self, email: str) -> int:
+    async def get_or_create_specialist(self, email: str) -> int:
         """Возвращает ID пользователя, создаёт при отсутствии."""
 
         stmt = (
             insert(User)
-            .values(email=email, roles=[UserRole.PSYCHOLOGIST.value])
+            .values(email=email, roles=[UserRole.SPECIALIST.value])
             .on_conflict_do_nothing(index_elements=[User.email])
             .returning(User.id)
         )
@@ -107,12 +107,12 @@ class UserDAO(BaseDAO):
             await self.session.execute(
                 update(User)
                 .where(User.id == uid)
-                .where(~User.roles.op("?")("PSYCHOLOGIST"))
-                .values(roles=User.roles + func.jsonb_build_array("PSYCHOLOGIST"))
+                .where(~User.roles.op("?")("SPECIALIST"))
+                .values(roles=User.roles + func.jsonb_build_array("SPECIALIST"))
             )
 
         stmt_profile = (
-            insert(PsychologistProfile)
+            insert(SpecialistProfile)
             .values(id=uid)
             .on_conflict_do_nothing(index_elements=[ClientProfile.id])
         )
@@ -140,27 +140,25 @@ class UserDAO(BaseDAO):
 
         return user, user.client_profile
 
-    async def get_psychologist_full(
-        self, user_id: int
-    ) -> tuple[User, PsychologistProfile]:
+    async def get_specialist_full(self, user_id: int) -> tuple[User, SpecialistProfile]:
         """
-        Возвращает пару (user, psychologist_profile) для психолога.
+        Возвращает пару (user, specialist_profile) для специалиста.
         Если профиля нет — вернёт (user, None).
         Бросит 404, если пользователя нет.
         """
         stmt = (
             select(User)
-            .options(selectinload(User.psychologist_profile))
+            .options(selectinload(User.specialist_profile))
             .where(User.id == user_id)
         )
 
         result = await self.session.execute(stmt)
         user = result.scalar_one_or_none()
 
-        if user is None or user.psychologist_profile is None:
+        if user is None or user.specialist_profile is None:
             raise HTTPException(status_code=404, detail="User not found")
 
-        return user, user.psychologist_profile
+        return user, user.specialist_profile
 
     async def get_by_email(self, email: str):
         stmt = (

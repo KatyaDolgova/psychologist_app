@@ -25,13 +25,13 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest_asyncio.fixture
-async def psy(store):
+async def specialist(store):
     user = await store.user.add(
         return_model=True,
-        email=f"psy-{uuid.uuid4()}@example.com",
-        roles=[UserRole.PSYCHOLOGIST.value],
+        email=f"specialist-{uuid.uuid4()}@example.com",
+        roles=[UserRole.SPECIALIST.value],
     )
-    await store.psychologist.add(
+    await store.specialist.add(
         return_model=False,
         id=user.id,
         first_name="T",
@@ -42,98 +42,98 @@ async def psy(store):
     return user.id
 
 
-async def _change_duration(store, psy_id, minutes: int):
-    await store.psychologist.update(
-        model_id=psy_id,
+async def _change_duration(store, specialist_id, minutes: int):
+    await store.specialist.update(
+        model_id=specialist_id,
         return_model=False,
         session_duration_minutes=minutes,
     )
 
 
 @requires_postgres
-async def test_create_one_off_rejects_overlap_after_duration_change(store, psy):
+async def test_create_one_off_rejects_overlap_after_duration_change(store, specialist):
     """09:00-10:00 (60min) exists, then duration→90, new at 09:30 (90min) overlaps."""
     service = SlotManagementService(store=store)
     await service.create_one_off(
-        psychologist_id=psy,
+        specialist_id=specialist,
         starts_at=datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc),
     )
-    await _change_duration(store, psy, 90)
+    await _change_duration(store, specialist, 90)
     with pytest.raises(SlotCollisionError):
         await service.create_one_off(
-            psychologist_id=psy,
+            specialist_id=specialist,
             starts_at=datetime(2026, 6, 1, 9, 30, tzinfo=timezone.utc),
         )
 
 
-async def test_create_one_off_allows_back_to_back(store, psy):
+async def test_create_one_off_allows_back_to_back(store, specialist):
     """09:00-10:00 and 10:00-11:00 must not be flagged as overlap."""
     service = SlotManagementService(store=store)
     await service.create_one_off(
-        psychologist_id=psy,
+        specialist_id=specialist,
         starts_at=datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc),
     )
     # 10:00 starts exactly when 09:00-slot ends — half-open intervals: not overlap.
     await service.create_one_off(
-        psychologist_id=psy,
+        specialist_id=specialist,
         starts_at=datetime(2026, 6, 1, 10, 0, tzinfo=timezone.utc),
     )
 
 
 @requires_postgres
-async def test_patch_rejects_overlap_with_other_slot(store, psy):
+async def test_patch_rejects_overlap_with_other_slot(store, specialist):
     """Two slots; patching one onto the other's interval is rejected."""
     service = SlotManagementService(store=store)
     s1 = await service.create_one_off(
-        psychologist_id=psy,
+        specialist_id=specialist,
         starts_at=datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc),
     )
     await service.create_one_off(
-        psychologist_id=psy,
+        specialist_id=specialist,
         starts_at=datetime(2026, 6, 1, 11, 0, tzinfo=timezone.utc),
     )
     # Try to move s1 to 10:30 — would be 10:30-11:30, overlaps 11:00-12:00 slot.
     with pytest.raises(SlotCollisionError):
         await service.update_starts_at(
-            psychologist_id=psy,
+            specialist_id=specialist,
             slot_id=s1.id,
             new_starts_at=datetime(2026, 6, 1, 10, 30, tzinfo=timezone.utc),
         )
 
 
 @requires_postgres
-async def test_cancelled_slot_still_blocks_overlap(store, psy):
-    """CANCELLED slots intentionally retain their time; psy can't book over them."""
+async def test_cancelled_slot_still_blocks_overlap(store, specialist):
+    """CANCELLED slots intentionally retain their time; specialist can't book over them."""
     service = SlotManagementService(store=store)
     slot = await service.create_one_off(
-        psychologist_id=psy,
+        specialist_id=specialist,
         starts_at=datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc),
     )
     await store.availability_slot.set_status(slot.id, SlotStatus.CANCELLED)
     with pytest.raises(SlotCollisionError):
         await service.create_one_off(
-            psychologist_id=psy,
+            specialist_id=specialist,
             starts_at=datetime(2026, 6, 1, 9, 30, tzinfo=timezone.utc),
         )
 
 
-async def test_generator_skips_overlapping_with_existing(store, psy):
+async def test_generator_skips_overlapping_with_existing(store, specialist):
     """If a 90-min one-off exists at 09:30, generator (60-min slots from template)
     must skip 09:00 (would overlap) and 10:00 (would overlap) — but keep 11:00.
     """
     # Pre-existing 90-min slot at 09:30 → 11:00 (set duration=90 first)
-    await _change_duration(store, psy, 90)
+    await _change_duration(store, specialist, 90)
     mgmt = SlotManagementService(store=store)
     await mgmt.create_one_off(
-        psychologist_id=psy,
+        specialist_id=specialist,
         starts_at=datetime(2026, 6, 1, 6, 30, tzinfo=timezone.utc),
         # UTC 06:30 = MSK 09:30
     )
     # Now back to 60min and a template covering 09:00–12:00 local
-    await _change_duration(store, psy, 60)
+    await _change_duration(store, specialist, 60)
     await store.working_hours.add(
         return_model=False,
-        psychologist_id=psy,
+        specialist_id=specialist,
         day_of_week=DayOfWeek.MONDAY,
         start_time=time(9, 0),
         end_time=time(12, 0),
@@ -141,7 +141,7 @@ async def test_generator_skips_overlapping_with_existing(store, psy):
     )
     gen = SlotGenerationService(store=store)
     created, skipped = await gen.generate_for_range(
-        psychologist_id=psy,
+        specialist_id=specialist,
         from_date=date(2026, 6, 1),
         to_date=date(2026, 6, 1),
     )

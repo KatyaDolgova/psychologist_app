@@ -3,13 +3,13 @@ from fastapi import Depends
 from src.config import settings
 from src.core.dependencies import get_store
 from src.crud import Store
-from src.schemas.psychologists import (
-    PsychologistProfileSchema,
-    PsychologistProfileUpdate,
+from src.schemas.specialists import (
+    SpecialistProfileSchema,
+    SpecialistProfileUpdate,
 )
 
 
-class PsychologistService:
+class SpecialistService:
     """
     Сервис для управления пользователями системы.
     """
@@ -20,12 +20,12 @@ class PsychologistService:
     ):
         self._store = store
 
-    async def get_profile(self, psychologist_id: int) -> PsychologistProfileSchema:
-        user, profile = await self._store.user.get_psychologist_full(
-            user_id=psychologist_id
+    async def get_profile(self, specialist_id: int) -> SpecialistProfileSchema:
+        user, profile = await self._store.user.get_specialist_full(
+            user_id=specialist_id
         )
 
-        return PsychologistProfileSchema(
+        return SpecialistProfileSchema(
             id=user.id,
             email=user.email,
             first_name=profile.first_name,
@@ -43,7 +43,7 @@ class PsychologistService:
             session_duration_minutes=profile.session_duration_minutes,
         )
 
-    async def update_profile(self, user_id: int, data: PsychologistProfileUpdate):
+    async def update_profile(self, user_id: int, data: SpecialistProfileUpdate):
         if data.email:
             await self._store.user.update(
                 model_id=user_id,
@@ -53,7 +53,7 @@ class PsychologistService:
 
             del data.email
 
-        await self._store.psychologist.update(
+        await self._store.specialist.update(
             model_id=user_id, return_model=False, **data.model_dump(exclude_unset=True)
         )
         return {}

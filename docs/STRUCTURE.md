@@ -61,16 +61,16 @@ api/  →  services/  →  crud/  →  models/  →  база данных
 |---|---|---|
 | `/auth` | [api/auth.py](../backend/src/api/auth.py) → [auth_service.py](../backend/src/services/auth/auth_service.py) | вход по коду из письма, токены |
 | `/user` | [api/users/user.py](../backend/src/api/users/user.py) → [user_service.py](../backend/src/services/user/user_service.py) | профиль клиента, анкета, аватар |
-| `/user/psychologists` | [api/users/psychologists.py](../backend/src/api/users/psychologists.py) | список психологов для клиента |
-| `/user/psychologists/favorites` | [api/users/favorites.py](../backend/src/api/users/favorites.py) | избранное |
+| `/user/specialists` | [api/users/specialists.py](../backend/src/api/users/specialists.py) | список специалистов для клиента |
+| `/user/specialists/favorites` | [api/users/favorites.py](../backend/src/api/users/favorites.py) | избранное |
 | `/user/appointments` | [api/users/appointments.py](../backend/src/api/users/appointments.py) → [booking.py](../backend/src/services/availability/booking.py) | запись на слот, отмена, мои сессии |
 | `/user/methods` | [api/users/payment_methods.py](../backend/src/api/users/payment_methods.py) | способы оплаты (СБП с SMS-кодом) |
-| `/psychologists/profile` | [api/psychologists/profile.py](../backend/src/api/psychologists/profile.py) | профиль психолога: методы, цена, опыт |
-| `/psychologists/template` | [working_hours.py](../backend/src/api/psychologists/working_hours.py) → [working_hours_service.py](../backend/src/services/working_hours_service.py) | шаблон рабочих часов |
-| `/psychologists/slots` | [slots.py](../backend/src/api/psychologists/slots.py) → [slot_generation.py](../backend/src/services/availability/slot_generation.py), [slot_management.py](../backend/src/services/availability/slot_management.py) | генерация и ручное управление слотами |
-| `/psychologists/{id}/free-slots` | [free_slots.py](../backend/src/api/psychologists/free_slots.py) | свободные слоты, которые видит клиент |
-| `/psychologists/clients` | [clients.py](../backend/src/api/psychologists/clients.py), [client_notes.py](../backend/src/api/psychologists/client_notes.py) | клиенты психолога и заметки о них |
-| `/psychologists/appointments` | [appointments.py](../backend/src/api/psychologists/appointments.py) | расписание психолога |
+| `/specialists/profile` | [api/specialists/profile.py](../backend/src/api/specialists/profile.py) | профиль специалиста: методы, цена, опыт |
+| `/specialists/template` | [working_hours.py](../backend/src/api/specialists/working_hours.py) → [working_hours_service.py](../backend/src/services/working_hours_service.py) | шаблон рабочих часов |
+| `/specialists/slots` | [slots.py](../backend/src/api/specialists/slots.py) → [slot_generation.py](../backend/src/services/availability/slot_generation.py), [slot_management.py](../backend/src/services/availability/slot_management.py) | генерация и ручное управление слотами |
+| `/specialists/{id}/free-slots` | [free_slots.py](../backend/src/api/specialists/free_slots.py) | свободные слоты, которые видит клиент |
+| `/specialists/clients` | [clients.py](../backend/src/api/specialists/clients.py), [client_notes.py](../backend/src/api/specialists/client_notes.py) | клиенты специалиста и заметки о них |
+| `/specialists/appointments` | [appointments.py](../backend/src/api/specialists/appointments.py) | расписание специалиста |
 | `/chats` | [api/chats.py](../backend/src/api/chats.py) → [chats_service.py](../backend/src/services/chats/chats_service.py) | чаты и сообщения |
 | WebSocket | [api/ws.py](../backend/src/api/ws.py) → [services/ws/](../backend/src/services/ws/) | сообщения в реальном времени |
 | `/calls` | [api/calls.py](../backend/src/api/calls.py) → [call_service.py](../backend/src/services/call/call_service.py) | токены для видеозвонков LiveKit |
@@ -82,12 +82,12 @@ api/  →  services/  →  crud/  →  models/  →  база данных
 |---|---|
 | [user.py](../backend/src/models/user.py) | аккаунт: email и роли |
 | [client.py](../backend/src/models/client.py) | профиль клиента |
-| [psychologist.py](../backend/src/models/psychologist.py) | профиль психолога |
-| [psychologist_schedule.py](../backend/src/models/psychologist_schedule.py) | рабочие часы |
+| [specialist.py](../backend/src/models/specialist.py) | профиль специалиста |
+| [specialist_schedule.py](../backend/src/models/specialist_schedule.py) | рабочие часы |
 | [availability_slot.py](../backend/src/models/availability_slot.py) | слоты |
 | [appointment.py](../backend/src/models/appointment.py) | записи на сессии |
 | [chats.py](../backend/src/models/chats.py) | чаты и сообщения |
-| [client_note.py](../backend/src/models/client_note.py) | заметки психолога о клиенте |
+| [client_note.py](../backend/src/models/client_note.py) | заметки специалиста о клиенте |
 | [favorites.py](../backend/src/models/favorites.py) | избранное |
 | [payment_method.py](../backend/src/models/payment_method.py) | способы оплаты |
 
@@ -99,7 +99,7 @@ api/  →  services/  →  crud/  →  models/  →  база данных
 |---|---|
 | [main.tsx](../frontend-web/src/main.tsx), [app/App.tsx](../frontend-web/src/app/App.tsx) | точка входа |
 | [app/routes.ts](../frontend-web/src/app/routes.ts) | **все страницы и кто их видит** |
-| [api/](../frontend-web/src/api/) | запросы к бэкенду: `auth`, `profile`, `psychologist`, `chats`. В `client.ts` при ответе 401 происходит выход на страницу входа |
+| [api/](../frontend-web/src/api/) | запросы к бэкенду: `auth`, `profile`, `specialist`, `chats`. В `client.ts` при ответе 401 происходит выход на страницу входа |
 | [app/context/UserContext.tsx](../frontend-web/src/app/context/UserContext.tsx) | текущий пользователь и его роль |
 | [app/types.ts](../frontend-web/src/app/types.ts) | типы данных |
 | [app/components/ui/](../frontend-web/src/app/components/ui/) | готовые UI-элементы (кнопки, диалоги и т. д.), их обычно не трогают |
@@ -110,10 +110,10 @@ api/  →  services/  →  crud/  →  models/  →  база данных
 | Адрес | Компонент | Кто видит |
 |---|---|---|
 | `/auth` | `Auth.tsx` | все: выбор роли и вход |
-| `/` | `Dashboard.tsx` | психолог |
-| `/clients`, `/clients/:id` | `Clients.tsx`, `ClientDetails.tsx` | психолог |
-| `/working-hours` | `WorkingHours.tsx` | психолог |
-| `/psychologists` | `Psychologists.tsx` (и запись на слот) | клиент |
+| `/` | `Dashboard.tsx` | специалист |
+| `/clients`, `/clients/:id` | `Clients.tsx`, `ClientDetails.tsx` | специалист |
+| `/working-hours` | `WorkingHours.tsx` | специалист |
+| `/specialists` | `Specialists.tsx` (и запись на слот) | клиент |
 | `/favorites` | `Favorites.tsx` | клиент |
 | `/sessions` | `Sessions.tsx` | оба |
 | `/chats` | `Chats.tsx` | оба |
@@ -128,7 +128,7 @@ api/  →  services/  →  crud/  →  models/  →  база данных
 | Папка | Что там |
 |---|---|
 | `app/` | экраны: `auth`, `role`, `survey` (анкета), `psychologists`, `profile`, `groups`, `meditation`, `form` |
-| `components/` | части экранов: чат, профиль, карточки психологов и т. д. |
+| `components/` | части экранов: чат, профиль, карточки специалистов и т. д. |
 | `api/` | запросы к бэкенду |
 | `store/slices/` | состояние приложения (Redux): пользователь, чаты, сессии, группы |
 

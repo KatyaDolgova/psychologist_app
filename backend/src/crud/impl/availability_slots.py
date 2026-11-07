@@ -14,7 +14,7 @@ from src.models import AvailabilitySlot, SlotStatus
 # Маркеры в тексте ошибки целостности, по которым мы распознаём
 # «слот накладывается на другой» и поднимаем доменное SlotCollisionError.
 # Покрываем оба бекенда: PG (имя constraint'а) и SQLite (формат UNIQUE-сообщения).
-_OVERLAP_CONSTRAINTS = ("no_slot_overlap", "uq_slot_psy_starts")
+_OVERLAP_CONSTRAINTS = ("no_slot_overlap", "uq_slot_specialist_starts")
 
 
 def _is_overlap_violation(exc: IntegrityError) -> bool:
@@ -24,13 +24,13 @@ def _is_overlap_violation(exc: IntegrityError) -> bool:
     # SQLite не упоминает имя constraint'а в тексте — матчим по таблице/колонке.
     return (
         "UNIQUE" in msg
-        and "psychologist_availability_slots" in msg
+        and "specialist_availability_slots" in msg
         and "starts_at" in msg
     )
 
 
 class AvailabilitySlotsDAO(BaseDAO):
-    """DAO для работы со слотами доступности психолога."""
+    """DAO для работы со слотами доступности специалиста."""
 
     model = AvailabilitySlot
 
@@ -66,15 +66,15 @@ class AvailabilitySlotsDAO(BaseDAO):
     @handle_db_errors
     async def list_in_range(
         self,
-        psychologist_id: int,
+        specialist_id: int,
         from_dt: datetime,
         to_dt: datetime,
         status: SlotStatus | None = None,
     ) -> Sequence[AvailabilitySlot]:
-        """Возвращает слоты психолога в окне [from_dt, to_dt), отсортированные по starts_at."""
+        """Возвращает слоты специалиста в окне [from_dt, to_dt), отсортированные по starts_at."""
         query = (
             select(self.model)
-            .where(self.model.psychologist_id == psychologist_id)
+            .where(self.model.specialist_id == specialist_id)
             .where(self.model.starts_at >= from_dt)
             .where(self.model.starts_at < to_dt)
             .order_by(self.model.starts_at)
@@ -85,7 +85,7 @@ class AvailabilitySlotsDAO(BaseDAO):
         return result.scalars().all()
 
     async def bulk_insert_ignore_conflicts(self, rows: list[dict]) -> int:
-        """Bulk INSERT с ON CONFLICT (psy_id, starts_at) DO NOTHING.
+        """Bulk INSERT с ON CONFLICT (specialist_id, starts_at) DO NOTHING.
 
         Используется генератором слотов для идемпотентной материализации.
         Маппит IntegrityError из EXCLUDE-индекса (no_slot_overlap) в
@@ -97,7 +97,7 @@ class AvailabilitySlotsDAO(BaseDAO):
         stmt = (
             pg_insert(self.model)
             .values(rows)
-            .on_conflict_do_nothing(index_elements=["psychologist_id", "starts_at"])
+            .on_conflict_do_nothing(index_elements=["specialist_id", "starts_at"])
             .returning(self.model.id)
         )
         try:
@@ -114,7 +114,7 @@ class AvailabilitySlotsDAO(BaseDAO):
         """Atomic FREE→BOOKED transition (optimistic locking).
 
         Single UPDATE ... WHERE status='FREE' AND starts_at > now. Returns
-        psy_id on success, None if the slot wasn't FREE, has already started
+        specialist_id on success, None if the slot wasn't FREE, has already started
         (or doesn't exist).
         """
         stmt = (
@@ -125,7 +125,7 @@ class AvailabilitySlotsDAO(BaseDAO):
                 self.model.starts_at > datetime.now(timezone.utc),
             )
             .values(status=SlotStatus.BOOKED)
-            .returning(self.model.psychologist_id)
+            .returning(self.model.specialist_id)
             # "fetch" вместо Python-оценки условия: на SQLite starts_at в
             # сессии naive и не сравнивается с aware datetime.now(timezone.utc).
             .execution_options(synchronize_session="fetch")
@@ -138,7 +138,7 @@ class AvailabilitySlotsDAO(BaseDAO):
         """Atomic BOOKED→FREE transition (client cancellation).
 
         Returns True iff a row matched (slot was BOOKED). False indicates a
-        race — typically the psy just cancelled the slot.
+        race — typically the specialist just cancelled the slot.
         """
         stmt = (
             update(self.model)
@@ -149,17 +149,17 @@ class AvailabilitySlotsDAO(BaseDAO):
         return (result.rowcount or 0) > 0
 
     @handle_db_errors
-    async def try_psy_cancel(self, slot_id: UUID, psychologist_id: int) -> bool:
+    async def try_specialist_cancel(self, slot_id: UUID, specialist_id: int) -> bool:
         """Atomic BOOKED→CANCELLED transition for the slot's owner.
 
-        Returns True iff a row matched (slot was BOOKED and owned by psy).
+        Returns True iff a row matched (slot was BOOKED and owned by specialist).
         False is ambiguous; caller resolves via a follow-up SELECT.
         """
         stmt = (
             update(self.model)
             .where(
                 self.model.id == slot_id,
-                self.model.psychologist_id == psychologist_id,
+                self.model.specialist_id == specialist_id,
                 self.model.status == SlotStatus.BOOKED,
             )
             .values(status=SlotStatus.CANCELLED)
@@ -171,7 +171,7 @@ class AvailabilitySlotsDAO(BaseDAO):
     async def set_status(self, slot_id: UUID, status: SlotStatus) -> None:
         """Утилитарный метод для тестов и админ-операций. Безмолвно игнорирует
         отсутствующий ID. Не использовать в основном потоке — там try_book/
-        try_release/try_psy_cancel дают атомарность.
+        try_release/try_specialist_cancel дают атомарность.
         """
         slot = await self.session.get(self.model, slot_id)
         if slot is None:
@@ -189,10 +189,10 @@ class AvailabilitySlotsDAO(BaseDAO):
         return result.rowcount or 0
 
     @handle_db_errors
-    async def last_slot_date(self, psychologist_id: int) -> datetime | None:
+    async def last_slot_date(self, specialist_id: int) -> datetime | None:
         """Возвращает starts_at последнего по времени слота или None."""
         query = select(func.max(self.model.starts_at)).where(
-            self.model.psychologist_id == psychologist_id
+            self.model.specialist_id == specialist_id
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
@@ -200,7 +200,7 @@ class AvailabilitySlotsDAO(BaseDAO):
     @handle_db_errors
     async def find_overlapping(
         self,
-        psychologist_id: int,
+        specialist_id: int,
         starts_at: datetime,
         ends_at: datetime,
         exclude_id: UUID | None = None,
@@ -212,7 +212,7 @@ class AvailabilitySlotsDAO(BaseDAO):
         """
         query = (
             select(self.model)
-            .where(self.model.psychologist_id == psychologist_id)
+            .where(self.model.specialist_id == specialist_id)
             .where(self.model.starts_at < ends_at)
             .where(self.model.ends_at > starts_at)
         )

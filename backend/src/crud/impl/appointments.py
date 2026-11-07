@@ -11,7 +11,7 @@ from src.models import (
     AppointmentAttendee,
     AvailabilitySlot,
     ClientProfile,
-    PsychologistProfile,
+    SpecialistProfile,
 )
 from src.models.enums.appointments import AppointmentRole
 
@@ -61,20 +61,20 @@ class AppointmentDAO(BaseDAO):
         # 2) Алиас для "всех участников" встречи (чтобы агрегировать)
         a = aliased(AppointmentAttendee)
         cp = aliased(ClientProfile)
-        pp = aliased(PsychologistProfile)
+        sp = aliased(SpecialistProfile)
 
         display_name_expr = case(
             (a.role == AppointmentRole.CLIENT, cp.name),
             (
-                a.role == AppointmentRole.PSYCHOLOGIST,
-                func.concat_ws(" ", pp.first_name, pp.last_name),
+                a.role == AppointmentRole.SPECIALIST,
+                func.concat_ws(" ", sp.first_name, sp.last_name),
             ),
             else_=None,
         )
 
         avatar_expr = case(
             (a.role == AppointmentRole.CLIENT, cp.avatar),
-            (a.role == AppointmentRole.PSYCHOLOGIST, pp.avatar),
+            (a.role == AppointmentRole.SPECIALIST, sp.avatar),
             else_=None,
         )
 
@@ -111,7 +111,9 @@ class AppointmentDAO(BaseDAO):
             # Подтягиваем всех участников + их профили
             .outerjoin(a, a.appointment_id == Appointment.id)
             .outerjoin(cp, cp.id == a.user_id)  # если участник клиент — попадём в cp
-            .outerjoin(pp, pp.id == a.user_id)  # если участник психолог — попадём в pp
+            .outerjoin(
+                sp, sp.id == a.user_id
+            )  # если участник специалист — попадём в sp
             .where(attendee_filter, Appointment.cancelled_at.is_(None))
         )
 
@@ -147,17 +149,17 @@ class AppointmentAttendeeDAO(BaseDAO):
     model = AppointmentAttendee
 
     @handle_db_errors
-    async def get_psychologist_clients(
+    async def get_specialist_clients(
         self,
-        psychologist_id: int,
+        specialist_id: int,
         limit: int = 25,
         offset: int = 0,
         name: str | None = None,
     ):
         """
-        Возвращает всех клиентов психолога с первой сессией и количеством сессий.
+        Возвращает всех клиентов специалиста с первой сессией и количеством сессий.
         """
-        psychologist_attendee = aliased(AppointmentAttendee)
+        specialist_attendee = aliased(AppointmentAttendee)
         client_attendee = aliased(AppointmentAttendee)
         cp = aliased(ClientProfile)
 
@@ -169,20 +171,20 @@ class AppointmentAttendeeDAO(BaseDAO):
                 func.min(AvailabilitySlot.starts_at).label("first_session"),
                 func.count(Appointment.id).label("total_sessions"),
             )
-            .select_from(psychologist_attendee)
+            .select_from(specialist_attendee)
             .join(
                 client_attendee,
-                psychologist_attendee.appointment_id == client_attendee.appointment_id,
+                specialist_attendee.appointment_id == client_attendee.appointment_id,
             )
             .join(
                 Appointment,
-                Appointment.id == psychologist_attendee.appointment_id,
+                Appointment.id == specialist_attendee.appointment_id,
             )
             .join(AvailabilitySlot, AvailabilitySlot.id == Appointment.slot_id)
             .outerjoin(cp, cp.id == client_attendee.user_id)
             .where(
-                psychologist_attendee.user_id == psychologist_id,
-                psychologist_attendee.role == AppointmentRole.PSYCHOLOGIST,
+                specialist_attendee.user_id == specialist_id,
+                specialist_attendee.role == AppointmentRole.SPECIALIST,
                 client_attendee.role == AppointmentRole.CLIENT,
             )
         )

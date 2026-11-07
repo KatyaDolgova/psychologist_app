@@ -59,7 +59,7 @@ class ChatsService:
 
         match caller_type:
             case "CLIENT":
-                other_info = await self._store.psychologist.get_name_and_avatar(
+                other_info = await self._store.specialist.get_name_and_avatar(
                     user_id=other_user_id
                 )
                 if other_info is not None:
@@ -68,7 +68,7 @@ class ChatsService:
                     )
                     avatar = other_info["avatar"]
 
-            case "PSYCHOLOGIST":
+            case "SPECIALIST":
                 other_info = await self._store.client.get_name_and_avatar(
                     user_id=other_user_id
                 )
@@ -123,12 +123,14 @@ class ChatsService:
 
         for c in directs:
             other_user_id = c["other_user_id"]
-            psych_info = await self._store.psychologist.get_name_and_avatar(
+            specialist_info = await self._store.specialist.get_name_and_avatar(
                 user_id=other_user_id
             )
-            if psych_info is not None:
-                display_name = f"{psych_info['first_name']} {psych_info['last_name']}"
-                avatar = psych_info["avatar"]
+            if specialist_info is not None:
+                display_name = (
+                    f"{specialist_info['first_name']} {specialist_info['last_name']}"
+                )
+                avatar = specialist_info["avatar"]
             else:
                 client_info = await self._store.client.get_name_and_avatar(
                     user_id=other_user_id

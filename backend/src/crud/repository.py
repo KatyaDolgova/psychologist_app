@@ -13,7 +13,7 @@ from src.crud.impl import (
     LessonDAO,
     LessonTranscriptDAO,
     PaymentMethodDAO,
-    PsychologistDAO,
+    SpecialistDAO,
     UserDAO,
     WorkingHoursDAO,
 )
@@ -50,7 +50,7 @@ class Store:
         self._admin_dao: AdminDAO | None = None
         self._payment_method_dao: PaymentMethodDAO | None = None
         self._favorite_dao: FavoritesDAO | None = None
-        self._psychologist_dao: PsychologistDAO | None = None
+        self._specialist_dao: SpecialistDAO | None = None
         self._chats_dao: ChatsDAO | None = None
         self._chat_members_dao: ChatMembersDAO | None = None
         self._chat_messages_dao: ChatMessagesDAO | None = None
@@ -120,25 +120,25 @@ class Store:
 
     @property
     def favorite(self) -> FavoritesDAO:
-        """Возвращает интерфейс для работы с избранными психологами клиента.
+        """Возвращает интерфейс для работы с избранными специалистами клиента.
 
         Returns:
-            FavoritesDAO: Интерфейс для работы с избранными психологами клиента.
+            FavoritesDAO: Интерфейс для работы с избранными специалистами клиента.
         """
         if self._favorite_dao is None:
             self._favorite_dao = FavoritesDAO(session=self._session)
         return self._favorite_dao
 
     @property
-    def psychologist(self) -> PsychologistDAO:
-        """Возвращает интерфейс для работы с психологами
+    def specialist(self) -> SpecialistDAO:
+        """Возвращает интерфейс для работы с специалистами
 
         Returns:
-            PsychologistDAO: Интерфейс для работы с психологами
+            SpecialistDAO: Интерфейс для работы с специалистами
         """
-        if self._psychologist_dao is None:
-            self._psychologist_dao = PsychologistDAO(session=self._session)
-        return self._psychologist_dao
+        if self._specialist_dao is None:
+            self._specialist_dao = SpecialistDAO(session=self._session)
+        return self._specialist_dao
 
     @property
     def chat(self) -> ChatsDAO:

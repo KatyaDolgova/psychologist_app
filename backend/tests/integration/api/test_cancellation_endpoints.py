@@ -1,9 +1,11 @@
 from tests.integration.api.dates import FREE_SLOTS_RANGE, SLOT_STARTS_AT
 
 
-def test_client_cancels_returns_slot_to_free(authed_psy, authed_client, psy_id):
-    create_slot = authed_psy.post(
-        "/psychologists/slots/",
+def test_client_cancels_returns_slot_to_free(
+    authed_specialist, authed_client, specialist_id
+):
+    create_slot = authed_specialist.post(
+        "/specialists/slots/",
         json={"starts_at": SLOT_STARTS_AT},
     )
     slot_id = create_slot.json()["id"]
@@ -12,30 +14,36 @@ def test_client_cancels_returns_slot_to_free(authed_psy, authed_client, psy_id):
     cancel = authed_client.delete(f"/user/appointments/{appt_id}")
     assert cancel.status_code == 204
 
-    free = authed_client.get(f"/psychologists/{psy_id}/free-slots/{FREE_SLOTS_RANGE}")
+    free = authed_client.get(
+        f"/specialists/{specialist_id}/free-slots/{FREE_SLOTS_RANGE}"
+    )
     assert len(free.json()) == 1
 
 
-def test_psy_cancels_marks_slot_cancelled(authed_psy, authed_client, psy_id):
-    create_slot = authed_psy.post(
-        "/psychologists/slots/",
+def test_specialist_cancels_marks_slot_cancelled(
+    authed_specialist, authed_client, specialist_id
+):
+    create_slot = authed_specialist.post(
+        "/specialists/slots/",
         json={"starts_at": SLOT_STARTS_AT},
     )
     slot_id = create_slot.json()["id"]
     authed_client.post("/user/appointments/", json={"slot_id": slot_id})
-    psy_cancel = authed_psy.post(
-        f"/psychologists/slots/{slot_id}/cancel",
+    specialist_cancel = authed_specialist.post(
+        f"/specialists/slots/{slot_id}/cancel",
         json={"reason": "тест"},
     )
-    assert psy_cancel.status_code == 204
+    assert specialist_cancel.status_code == 204
 
-    free = authed_client.get(f"/psychologists/{psy_id}/free-slots/{FREE_SLOTS_RANGE}")
+    free = authed_client.get(
+        f"/specialists/{specialist_id}/free-slots/{FREE_SLOTS_RANGE}"
+    )
     assert len(free.json()) == 0
 
 
-def test_double_cancel_returns_409(authed_psy, authed_client):
-    create_slot = authed_psy.post(
-        "/psychologists/slots/",
+def test_double_cancel_returns_409(authed_specialist, authed_client):
+    create_slot = authed_specialist.post(
+        "/specialists/slots/",
         json={"starts_at": SLOT_STARTS_AT},
     )
     slot_id = create_slot.json()["id"]

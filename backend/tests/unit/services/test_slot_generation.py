@@ -16,14 +16,14 @@ def _naive(dt: datetime) -> datetime:
 
 
 @pytest_asyncio.fixture
-async def psy(store):
-    """Psy with default profile (Europe/Moscow, 60-min sessions)."""
+async def specialist(store):
+    """Specialist with default profile (Europe/Moscow, 60-min sessions)."""
     user = await store.user.add(
         return_model=True,
-        email=f"psy-{uuid.uuid4()}@example.com",
-        roles=[UserRole.PSYCHOLOGIST.value],
+        email=f"specialist-{uuid.uuid4()}@example.com",
+        roles=[UserRole.SPECIALIST.value],
     )
-    await store.psychologist.add(
+    await store.specialist.add(
         return_model=False,
         id=user.id,
         first_name="T",
@@ -34,10 +34,10 @@ async def psy(store):
     return user.id
 
 
-async def test_generate_with_empty_template_creates_nothing(store, psy):
+async def test_generate_with_empty_template_creates_nothing(store, specialist):
     service = SlotGenerationService(store=store)
     created, skipped = await service.generate_for_range(
-        psychologist_id=psy,
+        specialist_id=specialist,
         from_date=date(2026, 6, 1),
         to_date=date(2026, 6, 7),
     )
@@ -45,10 +45,10 @@ async def test_generate_with_empty_template_creates_nothing(store, psy):
     assert skipped == 0
 
 
-async def test_generate_single_range_mon_9_to_12_makes_3_slots(store, psy):
+async def test_generate_single_range_mon_9_to_12_makes_3_slots(store, specialist):
     await store.working_hours.add(
         return_model=False,
-        psychologist_id=psy,
+        specialist_id=specialist,
         day_of_week=DayOfWeek.MONDAY,
         start_time=time(9, 0),
         end_time=time(12, 0),
@@ -57,7 +57,7 @@ async def test_generate_single_range_mon_9_to_12_makes_3_slots(store, psy):
     service = SlotGenerationService(store=store)
     # 2026-06-01 is a Monday
     created, skipped = await service.generate_for_range(
-        psychologist_id=psy,
+        specialist_id=specialist,
         from_date=date(2026, 6, 1),
         to_date=date(2026, 6, 1),
     )
@@ -65,7 +65,7 @@ async def test_generate_single_range_mon_9_to_12_makes_3_slots(store, psy):
     assert skipped == 0
 
     slots = await store.availability_slot.list_in_range(
-        psychologist_id=psy,
+        specialist_id=specialist,
         from_dt=datetime(2026, 6, 1, tzinfo=timezone.utc),
         to_dt=datetime(2026, 6, 2, tzinfo=timezone.utc),
     )
@@ -78,10 +78,10 @@ async def test_generate_single_range_mon_9_to_12_makes_3_slots(store, psy):
     ]
 
 
-async def test_generate_two_ranges_same_day_split_shift(store, psy):
+async def test_generate_two_ranges_same_day_split_shift(store, specialist):
     await store.working_hours.add(
         return_model=False,
-        psychologist_id=psy,
+        specialist_id=specialist,
         day_of_week=DayOfWeek.MONDAY,
         start_time=time(9, 0),
         end_time=time(11, 0),
@@ -89,7 +89,7 @@ async def test_generate_two_ranges_same_day_split_shift(store, psy):
     )
     await store.working_hours.add(
         return_model=False,
-        psychologist_id=psy,
+        specialist_id=specialist,
         day_of_week=DayOfWeek.MONDAY,
         start_time=time(14, 0),
         end_time=time(16, 0),
@@ -97,17 +97,17 @@ async def test_generate_two_ranges_same_day_split_shift(store, psy):
     )
     service = SlotGenerationService(store=store)
     created, _ = await service.generate_for_range(
-        psychologist_id=psy,
+        specialist_id=specialist,
         from_date=date(2026, 6, 1),
         to_date=date(2026, 6, 1),
     )
     assert created == 4  # 9, 10, 14, 15
 
 
-async def test_generate_idempotent_second_call_returns_zero(store, psy):
+async def test_generate_idempotent_second_call_returns_zero(store, specialist):
     await store.working_hours.add(
         return_model=False,
-        psychologist_id=psy,
+        specialist_id=specialist,
         day_of_week=DayOfWeek.MONDAY,
         start_time=time(9, 0),
         end_time=time(12, 0),
@@ -115,12 +115,12 @@ async def test_generate_idempotent_second_call_returns_zero(store, psy):
     )
     service = SlotGenerationService(store=store)
     await service.generate_for_range(
-        psychologist_id=psy,
+        specialist_id=specialist,
         from_date=date(2026, 6, 1),
         to_date=date(2026, 6, 1),
     )
     created2, skipped2 = await service.generate_for_range(
-        psychologist_id=psy,
+        specialist_id=specialist,
         from_date=date(2026, 6, 1),
         to_date=date(2026, 6, 1),
     )
@@ -128,10 +128,10 @@ async def test_generate_idempotent_second_call_returns_zero(store, psy):
     assert skipped2 == 3
 
 
-async def test_generate_inactive_range_skipped(store, psy):
+async def test_generate_inactive_range_skipped(store, specialist):
     await store.working_hours.add(
         return_model=False,
-        psychologist_id=psy,
+        specialist_id=specialist,
         day_of_week=DayOfWeek.MONDAY,
         start_time=time(9, 0),
         end_time=time(12, 0),
@@ -139,28 +139,28 @@ async def test_generate_inactive_range_skipped(store, psy):
     )
     service = SlotGenerationService(store=store)
     created, _ = await service.generate_for_range(
-        psychologist_id=psy,
+        specialist_id=specialist,
         from_date=date(2026, 6, 1),
         to_date=date(2026, 6, 1),
     )
     assert created == 0
 
 
-async def test_generate_range_too_wide_raises(store, psy):
+async def test_generate_range_too_wide_raises(store, specialist):
     service = SlotGenerationService(store=store)
     with pytest.raises(SlotRangeTooWideError):
         await service.generate_for_range(
-            psychologist_id=psy,
+            specialist_id=specialist,
             from_date=date(2026, 1, 1),
             to_date=date(2026, 12, 31),
         )
 
 
-async def test_range_shorter_than_duration_makes_zero_slots(store, psy):
+async def test_range_shorter_than_duration_makes_zero_slots(store, specialist):
     # 90-min duration but only 60-min window
     await store.working_hours.add(
         return_model=False,
-        psychologist_id=psy,
+        specialist_id=specialist,
         day_of_week=DayOfWeek.MONDAY,
         start_time=time(9, 0),
         end_time=time(9, 30),  # only 30 minutes
@@ -168,7 +168,7 @@ async def test_range_shorter_than_duration_makes_zero_slots(store, psy):
     )
     service = SlotGenerationService(store=store)
     created, _ = await service.generate_for_range(
-        psychologist_id=psy,
+        specialist_id=specialist,
         from_date=date(2026, 6, 1),
         to_date=date(2026, 6, 1),
     )

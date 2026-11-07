@@ -1,25 +1,25 @@
 from fastapi import APIRouter, Depends
 
-from src.core.dependencies import get_current_psychologist_id
+from src.core.dependencies import get_current_specialist_id
 from src.schemas.working_hours import (
     ReplaceTemplateRequest,
     TemplateRangeSchema,
 )
 from src.services.working_hours_service import WorkingHoursService
 
-router = APIRouter(tags=["Psychologists Template"])
+router = APIRouter(tags=["Specialists Template"])
 
 
 @router.get(
     "/",
     summary="Получить шаблон недели",
-    description="Возвращает все диапазоны недельного шаблона психолога.",
+    description="Возвращает все диапазоны недельного шаблона специалиста.",
 )
 async def get_template(
-    current_psychologist: int = Depends(get_current_psychologist_id),
+    current_specialist: int = Depends(get_current_specialist_id),
     service: WorkingHoursService = Depends(),
 ) -> list[TemplateRangeSchema]:
-    rows = await service.get_template(psychologist_id=current_psychologist)
+    rows = await service.get_template(specialist_id=current_specialist)
     return [TemplateRangeSchema.model_validate(r) for r in rows]
 
 
@@ -33,11 +33,11 @@ async def get_template(
 )
 async def replace_template(
     body: ReplaceTemplateRequest,
-    current_psychologist: int = Depends(get_current_psychologist_id),
+    current_specialist: int = Depends(get_current_specialist_id),
     service: WorkingHoursService = Depends(),
 ) -> list[TemplateRangeSchema]:
     rows = await service.replace_template(
-        psychologist_id=current_psychologist,
+        specialist_id=current_specialist,
         ranges=body.ranges,
     )
     return [TemplateRangeSchema.model_validate(r) for r in rows]

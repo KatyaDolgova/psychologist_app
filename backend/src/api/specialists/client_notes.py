@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.core.dependencies import get_current_psychologist_id, get_store
+from src.core.dependencies import get_current_specialist_id, get_store
 from src.crud import Store
 from src.schemas.client_notes import ClientNoteCreate, ClientNoteSchema
 
-router = APIRouter(tags=["Psychologists Client Notes"])
+router = APIRouter(tags=["Specialists Client Notes"])
 
 _403_response = {
     403: {
@@ -18,11 +18,11 @@ _403_response = {
 
 async def _check_shared_appointment(
     client_id: int,
-    current_psychologist: int = Depends(get_current_psychologist_id),
+    current_specialist: int = Depends(get_current_specialist_id),
     store: Store = Depends(get_store),
 ):
     has_appointment = await store.appointment_attendee.has_shared_appointment(
-        user_id_a=current_psychologist, user_id_b=client_id
+        user_id_a=current_specialist, user_id_b=client_id
     )
     if not has_appointment:
         raise HTTPException(status_code=403, detail="Нет записей с этим клиентом")
@@ -31,7 +31,7 @@ async def _check_shared_appointment(
 @router.get(
     "/{client_id}/notes",
     summary="Get client notes",
-    description="Получить заметки психолога о клиенте",
+    description="Получить заметки специалиста о клиенте",
     dependencies=[Depends(_check_shared_appointment)],
     responses={
         401: {
@@ -47,11 +47,11 @@ async def get_client_notes(
     client_id: int,
     limit: int = 25,
     offset: int = 0,
-    current_psychologist: int = Depends(get_current_psychologist_id),
+    current_specialist: int = Depends(get_current_specialist_id),
     store: Store = Depends(get_store),
 ) -> list[ClientNoteSchema]:
-    notes = await store.client_note.find_by_psychologist_and_client(
-        psychologist_id=current_psychologist,
+    notes = await store.client_note.find_by_specialist_and_client(
+        specialist_id=current_specialist,
         client_id=client_id,
         limit=limit,
         offset=offset,
@@ -87,11 +87,11 @@ async def get_client_notes(
 async def create_client_note(
     client_id: int,
     data: ClientNoteCreate,
-    current_psychologist: int = Depends(get_current_psychologist_id),
+    current_specialist: int = Depends(get_current_specialist_id),
     store: Store = Depends(get_store),
 ) -> ClientNoteSchema:
     note = await store.client_note.add(
-        psychologist_id=current_psychologist,
+        specialist_id=current_specialist,
         client_id=client_id,
         text=data.text,
     )
@@ -129,12 +129,12 @@ async def create_client_note(
 async def delete_client_note(
     client_id: int,
     note_id: int,
-    current_psychologist: int = Depends(get_current_psychologist_id),
+    current_specialist: int = Depends(get_current_specialist_id),
     store: Store = Depends(get_store),
 ):
     note = await store.client_note.find_one_or_none(
         id=note_id,
-        psychologist_id=current_psychologist,
+        specialist_id=current_specialist,
         client_id=client_id,
     )
     if not note:

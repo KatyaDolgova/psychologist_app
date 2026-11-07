@@ -3,7 +3,7 @@ import enum
 
 class UserRole(enum.Enum):
     CLIENT = "CLIENT"
-    PSYCHOLOGIST = "PSYCHOLOGIST"
+    SPECIALIST = "SPECIALIST"
     ADMIN = "ADMIN"
 
 

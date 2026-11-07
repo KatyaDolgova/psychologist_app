@@ -20,7 +20,7 @@ async def _make_transcript(
     user = await store.user.add(
         return_model=True,
         email=f"t-{uuid.uuid4()}@example.com",
-        roles=[UserRole.PSYCHOLOGIST.value],
+        roles=[UserRole.SPECIALIST.value],
     )
     lesson = await store.lesson.add(
         teacher_id=user.id,

@@ -1,10 +1,10 @@
-def test_get_template_empty(authed_psy):
-    resp = authed_psy.get("/psychologists/template/")
+def test_get_template_empty(authed_specialist):
+    resp = authed_specialist.get("/specialists/template/")
     assert resp.status_code == 200
     assert resp.json() == []
 
 
-def test_put_template_creates_ranges(authed_psy):
+def test_put_template_creates_ranges(authed_specialist):
     body = {
         "ranges": [
             {
@@ -21,13 +21,13 @@ def test_put_template_creates_ranges(authed_psy):
             },
         ]
     }
-    resp = authed_psy.put("/psychologists/template/", json=body)
+    resp = authed_specialist.put("/specialists/template/", json=body)
     assert resp.status_code == 200, resp.text  # show body on failure
     data = resp.json()
     assert len(data) == 2
 
 
-def test_put_template_rejects_overlap(authed_psy):
+def test_put_template_rejects_overlap(authed_specialist):
     body = {
         "ranges": [
             {
@@ -44,14 +44,14 @@ def test_put_template_rejects_overlap(authed_psy):
             },
         ]
     }
-    resp = authed_psy.put("/psychologists/template/", json=body)
+    resp = authed_specialist.put("/specialists/template/", json=body)
     assert resp.status_code == 422
 
 
-def test_put_template_replaces_atomically(authed_psy):
+def test_put_template_replaces_atomically(authed_specialist):
     # First set Monday
-    authed_psy.put(
-        "/psychologists/template/",
+    authed_specialist.put(
+        "/specialists/template/",
         json={
             "ranges": [
                 {
@@ -64,8 +64,8 @@ def test_put_template_replaces_atomically(authed_psy):
         },
     )
     # Replace with Tuesday
-    authed_psy.put(
-        "/psychologists/template/",
+    authed_specialist.put(
+        "/specialists/template/",
         json={
             "ranges": [
                 {
@@ -77,7 +77,7 @@ def test_put_template_replaces_atomically(authed_psy):
             ]
         },
     )
-    resp = authed_psy.get("/psychologists/template/")
+    resp = authed_specialist.get("/specialists/template/")
     data = resp.json()
     assert len(data) == 1
     assert data[0]["day_of_week"] == "TUESDAY"

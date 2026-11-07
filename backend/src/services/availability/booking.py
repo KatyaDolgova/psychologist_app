@@ -29,7 +29,7 @@ class BookingService:
 
     Асимметрия отмены:
     - Клиент отменяет → слот возвращается в FREE.
-    - Психолог отменяет → слот становится CANCELLED.
+    - Специалист отменяет → слот становится CANCELLED.
     """
 
     def __init__(self, store: Store = Depends(get_store)):
@@ -39,15 +39,15 @@ class BookingService:
         """Бронирует FREE-слот для клиента.
 
         Атомарно переводит слот FREE→BOOKED через UPDATE и получает
-        psychologist_id в RETURNING; затем создаёт запись и двух attendees.
+        specialist_id в RETURNING; затем создаёт запись и двух attendees.
 
         Raises:
             SlotNotFoundError: слот с таким id не существует.
             SlotInPastError: время слота уже наступило.
             SlotNotAvailableError: слот не находится в статусе FREE.
         """
-        psychologist_id = await self._store.availability_slot.try_book(slot_id=slot_id)
-        if psychologist_id is None:
+        specialist_id = await self._store.availability_slot.try_book(slot_id=slot_id)
+        if specialist_id is None:
             slot = await self._store.availability_slot.find_by_id(model_id=slot_id)
             if slot is None:
                 raise SlotNotFoundError()
@@ -71,8 +71,8 @@ class BookingService:
         await self._store.appointment_attendee.add(
             return_model=False,
             appointment_id=appointment.id,
-            user_id=psychologist_id,
-            role=AppointmentRole.PSYCHOLOGIST,
+            user_id=specialist_id,
+            role=AppointmentRole.SPECIALIST,
         )
         await self._store.session.flush()
         return appointment
@@ -101,35 +101,35 @@ class BookingService:
 
         released = await self._store.availability_slot.try_release(slot_id=appt.slot_id)
         if not released:
-            # Гонка: психолог только что отменил этот же слот.
+            # Гонка: специалист только что отменил этот же слот.
             raise AppointmentAlreadyCancelledError()
 
         appt.cancelled_at = datetime.now(timezone.utc)
         appt.cancelled_by = AppointmentRole.CLIENT
         await self._store.session.flush()
 
-    async def cancel_by_psy(
+    async def cancel_by_specialist(
         self,
-        psychologist_id: int,
+        specialist_id: int,
         slot_id: UUID,
         reason: str | None = None,
     ) -> None:
-        """Психолог отменяет BOOKED-слот. Слот становится CANCELLED.
+        """Специалист отменяет BOOKED-слот. Слот становится CANCELLED.
 
-        Slot-переход + проверка владельца атомарны через try_psy_cancel.
+        Slot-переход + проверка владельца атомарны через try_specialist_cancel.
         При неуспехе disambig-SELECT определяет точную причину 4xx-ответа.
 
         Raises:
             SlotNotFoundError, NotSlotOwnerError, SlotNotBookedError.
         """
-        ok = await self._store.availability_slot.try_psy_cancel(
-            slot_id=slot_id, psychologist_id=psychologist_id
+        ok = await self._store.availability_slot.try_specialist_cancel(
+            slot_id=slot_id, specialist_id=specialist_id
         )
         if not ok:
             slot = await self._store.availability_slot.find_by_id(model_id=slot_id)
             if slot is None:
                 raise SlotNotFoundError()
-            if slot.psychologist_id != psychologist_id:
+            if slot.specialist_id != specialist_id:
                 raise NotSlotOwnerError()
             raise SlotNotBookedError()
 
@@ -139,6 +139,6 @@ class BookingService:
             raise SlotNotFoundError(detail="Запись по слоту не найдена")
 
         appt.cancelled_at = datetime.now(timezone.utc)
-        appt.cancelled_by = AppointmentRole.PSYCHOLOGIST
+        appt.cancelled_by = AppointmentRole.SPECIALIST
         appt.cancellation_reason = reason
         await self._store.session.flush()

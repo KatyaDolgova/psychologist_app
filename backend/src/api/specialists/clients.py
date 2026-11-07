@@ -1,26 +1,26 @@
 from fastapi import APIRouter, Depends
 
-from src.core.dependencies import get_current_psychologist_id
-from src.schemas.clients import ClientProfileForPsychologist, PsychologistClientSchema
-from src.services.psychologist_clients_service import PsychologistClientsService
+from src.core.dependencies import get_current_specialist_id
+from src.schemas.clients import ClientProfileForSpecialist, SpecialistClientSchema
+from src.services.specialist_clients_service import SpecialistClientsService
 
-router = APIRouter(tags=["Psychologists Clients"])
+router = APIRouter(tags=["Specialists Clients"])
 
 
 @router.get(
     "/",
     summary="Get all clients",
-    description="Получить список всех клиентов психолога с информацией о сессиях",
+    description="Получить список всех клиентов специалиста с информацией о сессиях",
 )
 async def get_clients(
     limit: int = 25,
     offset: int = 0,
     name: str | None = None,
-    current_psychologist: int = Depends(get_current_psychologist_id),
-    service: PsychologistClientsService = Depends(),
-) -> list[PsychologistClientSchema]:
+    current_specialist: int = Depends(get_current_specialist_id),
+    service: SpecialistClientsService = Depends(),
+) -> list[SpecialistClientSchema]:
     return await service.get_clients(
-        psychologist_id=current_psychologist,
+        specialist_id=current_specialist,
         limit=limit,
         offset=offset,
         name=name,
@@ -56,9 +56,9 @@ async def get_clients(
 )
 async def get_client_profile(
     user_id: int,
-    current_psychologist: int = Depends(get_current_psychologist_id),
-    service: PsychologistClientsService = Depends(),
-) -> ClientProfileForPsychologist:
+    current_specialist: int = Depends(get_current_specialist_id),
+    service: SpecialistClientsService = Depends(),
+) -> ClientProfileForSpecialist:
     return await service.get_client_profile(
-        psychologist_id=current_psychologist, user_id=user_id
+        specialist_id=current_specialist, user_id=user_id
     )

@@ -3,28 +3,28 @@ from fastapi import Depends, HTTPException
 from src.config import settings
 from src.core.dependencies import get_store
 from src.crud import Store
-from src.schemas.clients import ClientProfileForPsychologist, PsychologistClientSchema
+from src.schemas.clients import ClientProfileForSpecialist, SpecialistClientSchema
 
 
-class PsychologistClientsService:
+class SpecialistClientsService:
     def __init__(self, store: Store = Depends(get_store)):
         self._store = store
 
     async def get_clients(
         self,
-        psychologist_id: int,
+        specialist_id: int,
         limit: int = 25,
         offset: int = 0,
         name: str | None = None,
-    ) -> list[PsychologistClientSchema]:
-        rows = await self._store.appointment_attendee.get_psychologist_clients(
-            psychologist_id=psychologist_id,
+    ) -> list[SpecialistClientSchema]:
+        rows = await self._store.appointment_attendee.get_specialist_clients(
+            specialist_id=specialist_id,
             limit=limit,
             offset=offset,
             name=name,
         )
         return [
-            PsychologistClientSchema(
+            SpecialistClientSchema(
                 client_id=row["client_id"],
                 name=row["name"] if row["name"] else "Anonymous",
                 avatar=(settings.STATIC_BASE_URL + row["avatar"])
@@ -37,10 +37,10 @@ class PsychologistClientsService:
         ]
 
     async def get_client_profile(
-        self, psychologist_id: int, user_id: int
-    ) -> ClientProfileForPsychologist:
+        self, specialist_id: int, user_id: int
+    ) -> ClientProfileForSpecialist:
         has_appointment = await self._store.appointment_attendee.has_shared_appointment(
-            user_id_a=psychologist_id, user_id_b=user_id
+            user_id_a=specialist_id, user_id_b=user_id
         )
         if not has_appointment:
             raise HTTPException(status_code=403, detail="Нет записей с этим клиентом")
@@ -53,7 +53,7 @@ class PsychologistClientsService:
         if client.avatar:
             avatar = settings.STATIC_BASE_URL + client.avatar
 
-        return ClientProfileForPsychologist(
+        return ClientProfileForSpecialist(
             id=client.id,
             name=client.name,
             age=client.age,

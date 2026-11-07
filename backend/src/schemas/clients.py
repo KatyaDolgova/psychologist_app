@@ -8,7 +8,7 @@ from src.models.enums import (
 )
 
 
-class PsychologistClientSchema(BaseModel):
+class SpecialistClientSchema(BaseModel):
     client_id: int
     name: str
     avatar: str | None = None
@@ -16,7 +16,7 @@ class PsychologistClientSchema(BaseModel):
     total_sessions: int
 
 
-class ClientProfileForPsychologist(BaseModel):
+class ClientProfileForSpecialist(BaseModel):
     id: int
     name: str | None = None
     age: int | None = None

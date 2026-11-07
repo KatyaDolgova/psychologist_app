@@ -25,8 +25,8 @@ class User(BaseWithTimestamps):
     )
 
     client_profile = relationship("ClientProfile", uselist=False, back_populates="user")
-    psychologist_profile = relationship(
-        "PsychologistProfile", uselist=False, back_populates="user"
+    specialist_profile = relationship(
+        "SpecialistProfile", uselist=False, back_populates="user"
     )
     admin_profile = relationship("AdminProfile", uselist=False, back_populates="user")
 

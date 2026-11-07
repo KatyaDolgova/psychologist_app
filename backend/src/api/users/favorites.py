@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from src.core.dependencies import get_current_user_id
-from src.schemas import EmptyModel, FavoritesPsychologistsResponse, PsychologistID
+from src.schemas import EmptyModel, FavoritesSpecialistsResponse, SpecialistID
 from src.services.user.favorites_service import FavoriteService
 
 router = APIRouter(tags=["Favorites"])
@@ -9,9 +9,9 @@ router = APIRouter(tags=["Favorites"])
 
 @router.get(
     "/",
-    summary="Get profile favorites psychologists",
-    description="Получить избранных психологов пользователя",
-    response_model=list[FavoritesPsychologistsResponse],
+    summary="Get profile favorites specialists",
+    description="Получить избранных специалистов пользователя",
+    response_model=list[FavoritesSpecialistsResponse],
     responses={
         401: {
             "description": "Токен не валиден",
@@ -30,8 +30,8 @@ async def get_user_favorites(
 
 @router.post(
     "/",
-    summary="Add psychologist to favorites",
-    description="Добавить психолого в избранное",
+    summary="Add specialist to favorites",
+    description="Добавить специалиста в избранное",
     response_model=EmptyModel,
     responses={
         401: {
@@ -47,7 +47,7 @@ async def get_user_favorites(
             },
         },
         409: {
-            "description": "Психолог уже добавлен в избранное",
+            "description": "Специалист уже добавлен в избранное",
             "content": {
                 "application/json": {
                     "example": {
@@ -58,21 +58,19 @@ async def get_user_favorites(
         },
     },
 )
-async def add_psychologist_to_favorites(
-    data: PsychologistID,
+async def add_specialist_to_favorites(
+    data: SpecialistID,
     user_id: int = Depends(get_current_user_id),
     service: FavoriteService = Depends(),
 ):
-    await service.add_psychologist_to_favorites(
-        user_id=user_id, psychologist_id=data.id
-    )
+    await service.add_specialist_to_favorites(user_id=user_id, specialist_id=data.id)
     return {}
 
 
 @router.delete(
-    "/{psychologist_id}/",
-    summary="Delete psychologist from favorites",
-    description="Удалить психолога из избранных",
+    "/{specialist_id}/",
+    summary="Delete specialist from favorites",
+    description="Удалить специалиста из избранных",
     status_code=204,
     responses={
         401: {
@@ -90,10 +88,10 @@ async def add_psychologist_to_favorites(
     },
 )
 async def delete_from_favorites(
-    psychologist_id: int,
+    specialist_id: int,
     user_id: int = Depends(get_current_user_id),
     service: FavoriteService = Depends(),
 ):
     return await service.delete_from_favorites(
-        user_id=user_id, psychologist_id=psychologist_id
+        user_id=user_id, specialist_id=specialist_id
     )

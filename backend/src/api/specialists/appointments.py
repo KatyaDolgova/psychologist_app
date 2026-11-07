@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 
-from src.core.dependencies import get_current_psychologist_id
+from src.core.dependencies import get_current_specialist_id
 from src.schemas.appointments import AppointmentSchema
 from src.services.user.appointments import AppointmentService
 
-router = APIRouter(tags=["Psychologists Appointments"])
+router = APIRouter(tags=["Specialists Appointments"])
 
 
 @router.get(
@@ -25,13 +25,13 @@ async def get_all_appointments(
     offset: int = 0,
     is_upcoming: bool = True,
     client_id: int | None = None,
-    current_psychologist: int = Depends(get_current_psychologist_id),
+    current_specialist: int = Depends(get_current_specialist_id),
     service: AppointmentService = Depends(),
 ) -> list[AppointmentSchema]:
-    return await service.get_psychologist_appointments(
+    return await service.get_specialist_appointments(
         limit=limit,
         offset=offset,
-        psychologist_id=current_psychologist,
+        specialist_id=current_specialist,
         is_upcoming=is_upcoming,
         client_id=client_id,
     )
