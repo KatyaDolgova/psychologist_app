@@ -19,7 +19,7 @@ class FasterWhisperTranscriber:
         )
         self._batched = settings.WHISPER_BATCHED
         # Пакетный режим обрабатывает куски записи параллельно: на CPU в 2-3 раза
-        # быстрее и меньше склонен к зацикливанию на длинных записях.
+        # быстрее. От зацикливания он не защищает, для этого есть guarded.py.
         self._runner = BatchedInferencePipeline(model) if self._batched else model
 
     def transcribe(

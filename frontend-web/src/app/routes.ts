@@ -10,9 +10,9 @@ import NotFound from './components/NotFound';
 import Auth from './components/Auth';
 import ProtectedRoute from './components/ProtectedRoute';
 import Profile from './components/Profile';
-import Psychologists from './components/Psychologists';
+import Specialists from './components/Specialists';
 import Favorites from './components/Favorites';
-import { PsychologistRoute, ClientRoute } from './components/RoleRoute';
+import { SpecialistRoute, ClientRoute } from './components/RoleRoute';
 import RouteError from './components/RouteError';
 
 export const router = createBrowserRouter([
@@ -25,7 +25,7 @@ export const router = createBrowserRouter([
 				Component: Layout,
 				children: [
 					{
-						Component: PsychologistRoute,
+						Component: SpecialistRoute,
 						children: [
 							{ index: true, Component: Dashboard },
 							{ path: 'clients', Component: Clients },
@@ -36,7 +36,7 @@ export const router = createBrowserRouter([
 					{
 						Component: ClientRoute,
 						children: [
-							{ path: 'psychologists', Component: Psychologists },
+							{ path: 'specialists', Component: Specialists },
 							{ path: 'favorites', Component: Favorites },
 						],
 					},

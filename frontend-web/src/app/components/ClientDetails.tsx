@@ -23,12 +23,12 @@ import {
 import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import {
-	getClientForPsychologistByID,
-	getPsychologistAppointmentsForClient,
+	getClientForSpecialistByID,
+	getSpecialistAppointmentsForClient,
 	getClientNotes,
 	createClientNote,
 	deleteClientNote,
-} from '../../api/psychologist';
+} from '../../api/specialist';
 
 const GENDER_LABELS: Record<string, string> = {
 	MALE: 'Мужской',
@@ -103,13 +103,13 @@ export default function ClientDetails() {
 			try {
 				const [clientData, upcomingData, completedData, notesData] =
 					await Promise.all([
-						getClientForPsychologistByID(token, clientId),
-						getPsychologistAppointmentsForClient(
+						getClientForSpecialistByID(token, clientId),
+						getSpecialistAppointmentsForClient(
 							token,
 							clientId,
 							true,
 						),
-						getPsychologistAppointmentsForClient(
+						getSpecialistAppointmentsForClient(
 							token,
 							clientId,
 							false,
@@ -177,11 +177,11 @@ export default function ClientDetails() {
 	if (error || !client) {
 		return (
 			<div className='p-8 text-center'>
-				<p className='text-red-500'>{error || 'Клиент не найден'}</p>
+				<p className='text-red-500'>{error || 'Ученик не найден'}</p>
 				<Link to='/clients'>
 					<Button variant='outline' className='mt-4'>
 						<ArrowLeft className='w-4 h-4 mr-2' />
-						Назад к клиентам
+						Назад к ученикам
 					</Button>
 				</Link>
 			</div>
@@ -196,7 +196,7 @@ export default function ClientDetails() {
 					className='mb-6 dark:text-gray-300 dark:hover:bg-gray-800'
 				>
 					<ArrowLeft className='w-4 h-4 mr-2' />
-					Назад к клиентам
+					Назад к ученикам
 				</Button>
 			</Link>
 
@@ -242,7 +242,7 @@ export default function ClientDetails() {
 				<Card className='mb-6 dark:bg-gray-800 dark:border-gray-700'>
 					<CardContent className='p-5'>
 						<p className='text-sm text-gray-500 dark:text-gray-400 mb-2'>
-							Форматы сессий
+							Форматы занятий
 						</p>
 						<div className='flex flex-wrap gap-2'>
 							{client.format.map((f: string) => (
@@ -264,7 +264,7 @@ export default function ClientDetails() {
 				<Card className='mb-6 dark:bg-gray-800 dark:border-gray-700'>
 					<CardHeader>
 						<CardTitle className='text-base dark:text-white'>
-							Запросы клиента
+							Запросы ученика
 						</CardTitle>
 					</CardHeader>
 					<CardContent className='pt-0 space-y-3'>
@@ -296,7 +296,7 @@ export default function ClientDetails() {
 			<Tabs defaultValue='sessions' className='w-full'>
 				<TabsList className='dark:bg-gray-800 dark:border-gray-700'>
 					<TabsTrigger value='sessions'>
-						Сессии ({appointments.length})
+						Занятия ({appointments.length})
 					</TabsTrigger>
 					<TabsTrigger value='notes'>
 						Заметки ({notes.length})
@@ -307,13 +307,13 @@ export default function ClientDetails() {
 					<Card className='dark:bg-gray-800 dark:border-gray-700'>
 						<CardHeader>
 							<CardTitle className='dark:text-white'>
-								История сессий
+								История занятий
 							</CardTitle>
 						</CardHeader>
 						<CardContent>
 							{appointments.length === 0 ? (
 								<p className='text-center text-gray-500 dark:text-gray-400 py-8'>
-									Нет записей о сессиях
+									Нет записей о занятиях
 								</p>
 							) : (
 								<div className='space-y-3'>
@@ -362,7 +362,7 @@ export default function ClientDetails() {
 													>
 														{isUpcoming
 															? 'Предстоит'
-															: 'Завершена'}
+															: 'Завершено'}
 													</Badge>
 												</div>
 											</div>

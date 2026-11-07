@@ -1,6 +1,7 @@
+import { SPECIALIST_ROLE } from '../../api/contract';
 import { Navigate, Outlet } from 'react-router';
 
-function decodeToken(token: string): { type: 'CLIENT' | 'PSYCHOLOGIST' } | null {
+function decodeToken(token: string): { type: 'CLIENT' | typeof SPECIALIST_ROLE } | null {
 	try {
 		const base64 = token
 			.split('.')[1]
@@ -12,11 +13,11 @@ function decodeToken(token: string): { type: 'CLIENT' | 'PSYCHOLOGIST' } | null 
 	}
 }
 
-export function PsychologistRoute() {
+export function SpecialistRoute() {
 	const token = localStorage.getItem('token');
 	if (!token) return <Navigate to='/auth' replace />;
 	const decoded = decodeToken(token);
-	if (decoded?.type !== 'PSYCHOLOGIST') return <Navigate to='/psychologists' replace />;
+	if (decoded?.type !== SPECIALIST_ROLE) return <Navigate to='/specialists' replace />;
 	return <Outlet />;
 }
 
@@ -24,6 +25,6 @@ export function ClientRoute() {
 	const token = localStorage.getItem('token');
 	if (!token) return <Navigate to='/auth' replace />;
 	const decoded = decodeToken(token);
-	if (decoded?.type === 'PSYCHOLOGIST') return <Navigate to='/' replace />;
+	if (decoded?.type === SPECIALIST_ROLE) return <Navigate to='/' replace />;
 	return <Outlet />;
 }

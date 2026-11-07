@@ -4,7 +4,7 @@ import { Search, Loader2, Calendar, Video, MessageSquare } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent } from './ui/card';
-import { getClientsForPsychologist } from '../../api/psychologist';
+import { getClientsForSpecialist } from '../../api/specialist';
 import { createDirectChat } from '../../api/chats';
 
 const getInitials = (name: string | null) =>
@@ -44,10 +44,10 @@ export default function Clients() {
 		setLoading(true);
 		setError('');
 		try {
-			const data = await getClientsForPsychologist(token);
+			const data = await getClientsForSpecialist(token);
 			setClients(data);
 		} catch (e: any) {
-			setError(e.message || 'Ошибка при загрузке клиентов');
+			setError(e.message || 'Ошибка при загрузке учеников');
 		} finally {
 			setLoading(false);
 		}
@@ -65,10 +65,10 @@ export default function Clients() {
 		<div className='p-8 bg-gray-50 dark:bg-gray-900 min-h-screen'>
 			<div className='mb-8'>
 				<h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-					Клиенты
+					Ученики
 				</h1>
 				<p className='text-gray-500 dark:text-gray-400 mt-1'>
-					Управление клиентской базой
+					Управление учениками
 				</p>
 			</div>
 
@@ -102,7 +102,7 @@ export default function Clients() {
 			) : filtered.length === 0 ? (
 				<div className='text-center py-24'>
 					<p className='text-gray-500 dark:text-gray-400'>
-						{search ? 'Клиенты не найдены' : 'Нет клиентов'}
+						{search ? 'Ученики не найдены' : 'Нет учеников'}
 					</p>
 				</div>
 			) : (
@@ -130,7 +130,7 @@ export default function Clients() {
 											{c.name || '—'}
 										</h3>
 										<p className='text-sm text-gray-500 dark:text-gray-400'>
-											Клиент
+											Ученик
 										</p>
 									</div>
 								</div>
@@ -139,7 +139,7 @@ export default function Clients() {
 									<div className='flex justify-between text-sm'>
 										<span className='flex items-center gap-1.5 text-gray-500 dark:text-gray-400'>
 											<Calendar className='w-4 h-4' />
-											Первая сессия
+											Первое занятие
 										</span>
 										<span className='font-medium text-gray-900 dark:text-gray-200'>
 											{c.first_session
@@ -154,7 +154,7 @@ export default function Clients() {
 									<div className='flex justify-between text-sm'>
 										<span className='flex items-center gap-1.5 text-gray-500 dark:text-gray-400'>
 											<Video className='w-4 h-4' />
-											Всего сессий
+											Всего занятий
 										</span>
 										<span className='font-medium text-gray-900 dark:text-gray-200'>
 											{c.total_sessions}

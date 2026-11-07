@@ -1,3 +1,4 @@
+import { SPECIALIST_USER_TYPE } from '../../api/contract';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
@@ -23,12 +24,12 @@ import { getVerifyCode, checkVerifyCode } from '../../api/auth';
 import { getUser, sendUserData } from '../../api/profile';
 import { birthDateMax, birthDateMin, validateBirthDate } from '../birthDate';
 import {
-	getPsyshologistProfile,
-	updatePsyshologistProfile,
-} from '../../api/psychologist';
+	getSpecialistProfile,
+	updateSpecialistProfile,
+} from '../../api/specialist';
 
 type Step = 'role' | 'email' | 'code' | 'survey';
-type Role = 'client' | 'psychologist';
+type Role = 'client' | 'specialist';
 
 const METHODS = [
 	{ value: 'GESTALT', label: 'Гештальт' },
@@ -105,12 +106,12 @@ export default function Auth() {
 	const [clientBirthDate, setClientBirthDate] = useState('');
 	const [clientGender, setClientGender] = useState('NOT_STATED');
 
-	const [psychFirstName, setPsychFirstName] = useState('');
-	const [psychLastName, setPsychLastName] = useState('');
-	const [psychExperience, setPsychExperience] = useState('');
-	const [psychPrice, setPsychPrice] = useState('');
-	const [psychGender, setPsychGender] = useState('NOT_STATED');
-	const [psychMethods, setPsychMethods] = useState<string[]>([]);
+	const [specialistFirstName, setSpecialistFirstName] = useState('');
+	const [specialistLastName, setSpecialistLastName] = useState('');
+	const [specialistExperience, setSpecialistExperience] = useState('');
+	const [specialistPrice, setSpecialistPrice] = useState('');
+	const [specialistGender, setSpecialistGender] = useState('NOT_STATED');
+	const [specialistMethods, setSpecialistMethods] = useState<string[]>([]);
 
 	useEffect(() => {
 		if (localStorage.getItem('token')) navigate('/');
@@ -141,7 +142,11 @@ export default function Auth() {
 		}
 		setLoading(true);
 		try {
-			const data = await checkVerifyCode(email, code, role);
+			const data = await checkVerifyCode(
+				email,
+				code,
+				role === 'specialist' ? SPECIALIST_USER_TYPE : role,
+			);
 			const newToken = data.token;
 			setToken(newToken);
 
@@ -149,12 +154,12 @@ export default function Auth() {
 				const profile = await getUser(newToken);
 				if (profile.name) {
 					localStorage.setItem('token', newToken);
-					navigate('/psychologists');
+					navigate('/specialists');
 				} else {
 					setStep('survey');
 				}
 			} else {
-				const profile = await getPsyshologistProfile(newToken);
+				const profile = await getSpecialistProfile(newToken);
 				if (profile.first_name) {
 					localStorage.setItem('token', newToken);
 					navigate('/');
@@ -192,7 +197,7 @@ export default function Auth() {
 				gender: clientGender,
 			});
 			localStorage.setItem('token', token);
-			navigate('/psychologists');
+			navigate('/specialists');
 		} catch (e: any) {
 			setSurveyErrors({
 				submit: e.message || 'Ошибка при сохранении анкеты',
@@ -202,25 +207,25 @@ export default function Auth() {
 		}
 	};
 
-	const handleSubmitPsychSurvey = async () => {
+	const handleSubmitSpecialistSurvey = async () => {
 		const errors: Record<string, string> = {};
-		if (!psychFirstName.trim()) errors.first_name = 'Имя обязательно';
-		if (!psychLastName.trim()) errors.last_name = 'Фамилия обязательна';
+		if (!specialistFirstName.trim()) errors.first_name = 'Имя обязательно';
+		if (!specialistLastName.trim()) errors.last_name = 'Фамилия обязательна';
 		if (Object.keys(errors).length > 0) {
 			setSurveyErrors(errors);
 			return;
 		}
 		setLoading(true);
 		try {
-			await updatePsyshologistProfile(token, {
-				first_name: psychFirstName.trim(),
-				last_name: psychLastName.trim(),
-				...(psychExperience && {
-					experience: parseInt(psychExperience),
+			await updateSpecialistProfile(token, {
+				first_name: specialistFirstName.trim(),
+				last_name: specialistLastName.trim(),
+				...(specialistExperience && {
+					experience: parseInt(specialistExperience),
 				}),
-				...(psychPrice && { price: parseInt(psychPrice) }),
-				...(psychGender !== 'NOT_STATED' && { gender: psychGender }),
-				...(psychMethods.length > 0 && { methods: psychMethods }),
+				...(specialistPrice && { price: parseInt(specialistPrice) }),
+				...(specialistGender !== 'NOT_STATED' && { gender: specialistGender }),
+				...(specialistMethods.length > 0 && { methods: specialistMethods }),
 			});
 			localStorage.setItem('token', token);
 			navigate('/');
@@ -234,7 +239,7 @@ export default function Auth() {
 	};
 
 	const toggleMethod = (method: string) =>
-		setPsychMethods((prev) =>
+		setSpecialistMethods((prev) =>
 			prev.includes(method)
 				? prev.filter((m) => m !== method)
 				: [...prev, method],
@@ -254,7 +259,7 @@ export default function Auth() {
 		survey:
 			role === 'client'
 				? 'Расскажите немного о себе'
-				: 'Заполните профиль психолога',
+				: 'Заполните профиль специалиста',
 	};
 
 	return (
@@ -284,10 +289,10 @@ export default function Auth() {
 								</div>
 								<div className='flex-1 cursor-pointer'>
 									<div className='font-medium text-gray-900 dark:text-white'>
-										Я клиент
+										Я ученик
 									</div>
 									<div className='text-sm text-gray-500 dark:text-gray-400'>
-										Ищу психолога для консультаций
+										Ищу специалиста для занятий
 									</div>
 								</div>
 								<ChevronRight className='w-5 h-5 text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors' />
@@ -295,7 +300,7 @@ export default function Auth() {
 
 							<button
 								onClick={() => {
-									setRole('psychologist');
+									setRole('specialist');
 									setStep('email');
 								}}
 								className='w-full flex items-center gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all text-left group'
@@ -305,10 +310,10 @@ export default function Auth() {
 								</div>
 								<div className='flex-1 cursor-pointer'>
 									<div className='font-medium text-gray-900 dark:text-white'>
-										Я психолог
+										Я специалист
 									</div>
 									<div className='text-sm text-gray-500 dark:text-gray-400'>
-										Веду приём клиентов
+										Веду занятия с учениками
 									</div>
 								</div>
 								<ChevronRight className='w-5 h-5 text-gray-400 group-hover:text-purple-500 dark:group-hover:text-purple-400 transition-colors' />
@@ -523,7 +528,7 @@ export default function Auth() {
 						</>
 					)}
 
-					{step === 'survey' && role === 'psychologist' && (
+					{step === 'survey' && role === 'specialist' && (
 						<>
 							<div className='grid grid-cols-2 gap-3'>
 								<div className='space-y-2'>
@@ -537,9 +542,9 @@ export default function Auth() {
 									<Input
 										id='first_name'
 										placeholder='Иван'
-										value={psychFirstName}
+										value={specialistFirstName}
 										onChange={(e) => {
-											setPsychFirstName(e.target.value);
+											setSpecialistFirstName(e.target.value);
 											clearSurveyError('first_name');
 										}}
 										className={inputClass(
@@ -563,9 +568,9 @@ export default function Auth() {
 									<Input
 										id='last_name'
 										placeholder='Иванов'
-										value={psychLastName}
+										value={specialistLastName}
 										onChange={(e) => {
-											setPsychLastName(e.target.value);
+											setSpecialistLastName(e.target.value);
 											clearSurveyError('last_name');
 										}}
 										className={inputClass(
@@ -593,9 +598,9 @@ export default function Auth() {
 										type='number'
 										min='0'
 										placeholder='5'
-										value={psychExperience}
+										value={specialistExperience}
 										onChange={(e) =>
-											setPsychExperience(e.target.value)
+											setSpecialistExperience(e.target.value)
 										}
 										className={inputClass()}
 									/>
@@ -605,16 +610,16 @@ export default function Auth() {
 										htmlFor='price'
 										className='dark:text-gray-200'
 									>
-										Цена (₽/сессия)
+										Цена (₽/занятие)
 									</Label>
 									<Input
 										id='price'
 										type='number'
 										min='0'
 										placeholder='3000'
-										value={psychPrice}
+										value={specialistPrice}
 										onChange={(e) =>
-											setPsychPrice(e.target.value)
+											setSpecialistPrice(e.target.value)
 										}
 										className={inputClass()}
 									/>
@@ -626,8 +631,8 @@ export default function Auth() {
 									Пол
 								</Label>
 								<GenderSelector
-									value={psychGender}
-									onChange={setPsychGender}
+									value={specialistGender}
+									onChange={setSpecialistGender}
 								/>
 							</div>
 
@@ -644,7 +649,7 @@ export default function Auth() {
 												toggleMethod(m.value)
 											}
 											className={`py-1.5 px-3 rounded-full border text-sm transition-colors cursor-pointer ${
-												psychMethods.includes(m.value)
+												specialistMethods.includes(m.value)
 													? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-400'
 													: 'border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
 											}`}
@@ -661,7 +666,7 @@ export default function Auth() {
 								</p>
 							)}
 							<Button
-								onClick={handleSubmitPsychSurvey}
+								onClick={handleSubmitSpecialistSurvey}
 								disabled={loading}
 								className='w-full bg-blue-600 hover:bg-blue-700 dark:text-white'
 							>

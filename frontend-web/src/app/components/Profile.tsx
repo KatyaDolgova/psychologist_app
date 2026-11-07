@@ -1,3 +1,4 @@
+import { SPECIALIST_ROLE } from '../../api/contract';
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, Save, User, Briefcase, Camera } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -8,9 +9,9 @@ import { useUser } from '../context/UserContext';
 import { updateUser, updateUserPhoto } from '../../api/profile';
 import { birthDateMax, birthDateMin, validateBirthDate } from '../birthDate';
 import {
-	updatePsyshologistProfile,
-	updatePsychologistPhoto,
-} from '../../api/psychologist';
+	updateSpecialistProfile,
+	updateSpecialistPhoto,
+} from '../../api/specialist';
 
 const METHODS = [
 	{ value: 'GESTALT', label: 'Гештальт' },
@@ -251,7 +252,7 @@ function ClientProfile() {
 	);
 }
 
-function PsychologistProfile() {
+function SpecialistProfile() {
 	const { profile, refreshProfile } = useUser();
 	const d = profile?.data;
 
@@ -297,7 +298,7 @@ function PsychologistProfile() {
 		setError('');
 		setSuccess(false);
 		try {
-			await updatePsyshologistProfile(token, {
+			await updateSpecialistProfile(token, {
 				first_name: firstName.trim(),
 				last_name: lastName.trim(),
 				email: email.trim() || null,
@@ -411,7 +412,7 @@ function PsychologistProfile() {
 						</div>
 						<div className='space-y-2'>
 							<Label className='dark:text-gray-200'>
-								Цена (₽/сессия)
+								Цена (₽/занятие)
 							</Label>
 							<Input
 								type='number'
@@ -497,14 +498,14 @@ export default function Profile() {
 		);
 	}
 
-	const isPsychologist = profile?.role === 'PSYCHOLOGIST';
-	const accentColor = isPsychologist
+	const isSpecialist = profile?.role === SPECIALIST_ROLE;
+	const accentColor = isSpecialist
 		? 'bg-purple-100 dark:bg-purple-900'
 		: 'bg-blue-100 dark:bg-blue-900';
-	const accentText = isPsychologist
+	const accentText = isSpecialist
 		? 'text-purple-700 dark:text-purple-400'
 		: 'text-blue-700 dark:text-blue-400';
-	const badgeColor = isPsychologist
+	const badgeColor = isSpecialist
 		? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
 		: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
 
@@ -514,8 +515,8 @@ export default function Profile() {
 		const token = localStorage.getItem('token') ?? '';
 		setUploading(true);
 		try {
-			if (isPsychologist) {
-				await updatePsychologistPhoto(token, file);
+			if (isSpecialist) {
+				await updateSpecialistPhoto(token, file);
 			} else {
 				await updateUserPhoto(token, file);
 			}
@@ -573,12 +574,12 @@ export default function Profile() {
 						<span
 							className={`inline-block mt-1 text-xs font-medium px-2.5 py-1 rounded-full ${badgeColor}`}
 						>
-							{isPsychologist ? 'Психолог' : 'Пользователь'}
+							{isSpecialist ? 'Специалист' : 'Ученик'}
 						</span>
 					</div>
 				</div>
 
-				{isPsychologist ? <PsychologistProfile /> : <ClientProfile />}
+				{isSpecialist ? <SpecialistProfile /> : <ClientProfile />}
 			</div>
 		</div>
 	);

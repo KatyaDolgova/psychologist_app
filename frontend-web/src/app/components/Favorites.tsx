@@ -13,10 +13,10 @@ import {
 } from './ui/dialog';
 import {
 	getAllFavorites,
-	deleteFavoritePsychologist,
+	deleteFavoriteSpecialist,
 	getFreeSlots,
 	bookSlot,
-} from '../../api/psychologist';
+} from '../../api/specialist';
 
 const METHOD_LABELS: Record<string, string> = {
 	GESTALT: 'Гештальт',
@@ -57,7 +57,7 @@ function ConfirmRemoveDialog({
 					</DialogTitle>
 				</DialogHeader>
 				<p className='text-sm text-gray-600 dark:text-gray-300 mt-1'>
-					{name} будет удалён из вашего списка избранных психологов.
+					{name} будет удалён из вашего списка избранных специалистов.
 				</p>
 				<div className='flex gap-3 mt-4'>
 					<Button
@@ -86,10 +86,10 @@ interface FreeSlot {
 }
 
 function BookingDialog({
-	psychologist,
+	specialist,
 	onBooked,
 }: {
-	psychologist: any;
+	specialist: any;
 	onBooked: () => void;
 }) {
 	const token = localStorage.getItem('token') ?? '';
@@ -116,7 +116,7 @@ function BookingDialog({
 			const toDt = `${toDate}T23:59:59Z`;
 			const data: FreeSlot[] = await getFreeSlots(
 				token,
-				psychologist.id,
+				specialist.id,
 				fromDt,
 				toDt,
 			);
@@ -181,7 +181,7 @@ function BookingDialog({
 			<DialogContent className='dark:bg-gray-800 dark:border-gray-700 max-w-md'>
 				<DialogHeader>
 					<DialogTitle className='dark:text-white'>
-						Запись к {psychologist.full_name}
+						Запись к {specialist.full_name}
 					</DialogTitle>
 				</DialogHeader>
 				<div className='space-y-4 mt-2'>
@@ -316,7 +316,7 @@ export default function Favorites() {
 	const handleRemove = async (id: number) => {
 		setRemovingId(id);
 		try {
-			await deleteFavoritePsychologist(token, id);
+			await deleteFavoriteSpecialist(token, id);
 			setFavorites((prev) => prev.filter((p) => p.id !== id));
 		} catch {
 		} finally {
@@ -332,7 +332,7 @@ export default function Favorites() {
 					Избранное
 				</h1>
 				<p className='text-gray-500 dark:text-gray-400 mt-1'>
-					Психологи, которых вы добавили в избранное
+					Специалисты, которых вы добавили в избранное
 				</p>
 			</div>
 
@@ -355,7 +355,7 @@ export default function Favorites() {
 				<div className='text-center py-24'>
 					<Heart className='w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4' />
 					<p className='text-gray-500 dark:text-gray-400'>
-						Вы ещё не добавили ни одного психолога в избранное
+						Вы ещё не добавили ни одного специалиста в избранное
 					</p>
 				</div>
 			) : (
@@ -384,7 +384,7 @@ export default function Favorites() {
 												{p.full_name}
 											</h3>
 											<p className='text-sm text-gray-500 dark:text-gray-400'>
-												Психолог
+												Специалист
 											</p>
 										</div>
 									</div>
@@ -425,7 +425,7 @@ export default function Favorites() {
 									className={`flex gap-2 ${bookedId === p.id ? 'mt-2' : 'mt-4'}`}
 								>
 									<BookingDialog
-										psychologist={p}
+										specialist={p}
 										onBooked={() => showBooked(p.id)}
 									/>
 								</div>
