@@ -1,3 +1,4 @@
+import { SPECIALIST_ROLE } from '../../api/contract';
 import { useEffect, useState } from 'react';
 import {
 	Calendar as CalendarIcon,
@@ -23,13 +24,13 @@ import {
 import { Label } from './ui/label';
 import { useUser } from '../context/UserContext';
 import {
-	getPsyshologistAppointments,
+	getSpecialistAppointments,
 	getAllAppointments,
-	getPsychologistsForClient,
+	getSpecialistsForClient,
 	getFreeSlots,
 	bookSlot,
 	cancelAppointment,
-} from '../../api/psychologist';
+} from '../../api/specialist';
 
 const fixUrl = (url: string | null) =>
 	url ? url.replace('http://0.0.0.0:', 'http://localhost:') : null;
@@ -65,13 +66,13 @@ const getInitials = (name: string | null) =>
 const JOIN_BEFORE_MS = 15 * 60 * 1000;
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 
-// Конец сессии; если ends_at не пришёл - считаем по стандартной длительности.
+// Конец занятия; если ends_at не пришёл - считаем по стандартной длительности.
 const getEndTime = (appointment: { start_at: string; ends_at?: string }) =>
 	appointment.ends_at
 		? new Date(appointment.ends_at).getTime()
 		: new Date(appointment.start_at).getTime() + DEFAULT_DURATION_MS;
 
-// Сессия не завершена, пока не наступило время её окончания.
+// Занятие не завершено, пока не наступило время его окончания.
 const isUpcoming = (
 	appointment: { start_at: string; ends_at?: string },
 	now: Date,
@@ -99,9 +100,9 @@ interface FreeSlot {
 function NewSessionDialog({ onCreated }: { onCreated: () => void }) {
 	const token = localStorage.getItem('token') ?? '';
 	const [open, setOpen] = useState(false);
-	const [psychologists, setPsychologists] = useState<any[]>([]);
-	const [loadingPsych, setLoadingPsych] = useState(false);
-	const [psychId, setPsychId] = useState('');
+	const [specialists, setSpecialists] = useState<any[]>([]);
+	const [loadingSpecialist, setLoadingSpecialist] = useState(false);
+	const [specialistId, setSpecialistId] = useState('');
 	const today = new Date().toISOString().slice(0, 10);
 	const weekLater = new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10);
 	const [fromDate, setFromDate] = useState(today);
@@ -115,18 +116,18 @@ function NewSessionDialog({ onCreated }: { onCreated: () => void }) {
 
 	const handleOpen = async (o: boolean) => {
 		setOpen(o);
-		if (o && psychologists.length === 0) {
-			setLoadingPsych(true);
+		if (o && specialists.length === 0) {
+			setLoadingSpecialist(true);
 			try {
-				const data = await getPsychologistsForClient(token);
-				setPsychologists(data);
+				const data = await getSpecialistsForClient(token);
+				setSpecialists(data);
 			} catch {
 			} finally {
-				setLoadingPsych(false);
+				setLoadingSpecialist(false);
 			}
 		}
 		if (!o) {
-			setPsychId('');
+			setSpecialistId('');
 			setSlots([]);
 			setSlotsError('');
 			setSelectedSlot('');
@@ -152,8 +153,8 @@ function NewSessionDialog({ onCreated }: { onCreated: () => void }) {
 		}
 	};
 
-	const handlePsychChange = (id: string) => {
-		setPsychId(id);
+	const handleSpecialistChange = (id: string) => {
+		setSpecialistId(id);
 		setSlots([]);
 		setSlotsError('');
 		setSelectedSlot('');
@@ -192,31 +193,31 @@ function NewSessionDialog({ onCreated }: { onCreated: () => void }) {
 			<DialogTrigger asChild>
 				<Button className='bg-blue-600 hover:bg-blue-700 dark:text-white'>
 					<Plus className='w-4 h-4 mr-2' />
-					Записаться к психологу
+					Записаться к специалисту
 				</Button>
 			</DialogTrigger>
 			<DialogContent className='dark:bg-gray-800 dark:border-gray-700 max-w-md'>
 				<DialogHeader>
 					<DialogTitle className='dark:text-white'>
-						Запись к психологу
+						Запись к специалисту
 					</DialogTitle>
 				</DialogHeader>
 				<div className='space-y-4 mt-2'>
 					<div className='space-y-2'>
-						<Label className='dark:text-gray-200'>Психолог</Label>
-						{loadingPsych ? (
+						<Label className='dark:text-gray-200'>Специалист</Label>
+						{loadingSpecialist ? (
 							<div className='flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400'>
 								<Loader2 className='w-4 h-4 animate-spin' />
 								Загрузка...
 							</div>
 						) : (
 							<select
-								value={psychId}
-								onChange={(e) => handlePsychChange(e.target.value)}
+								value={specialistId}
+								onChange={(e) => handleSpecialistChange(e.target.value)}
 								className='w-full rounded-md border border-input px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white cursor-pointer'
 							>
-								<option value=''>Выберите психолога</option>
-								{psychologists.map((p) => (
+								<option value=''>Выберите специалиста</option>
+								{specialists.map((p) => (
 									<option key={p.id} value={p.id}>
 										{p.first_name} {p.last_name}
 										{p.price ? ` — ${p.price} ₽` : ''}
@@ -226,7 +227,7 @@ function NewSessionDialog({ onCreated }: { onCreated: () => void }) {
 						)}
 					</div>
 
-					{psychId && (
+					{specialistId && (
 						<>
 							<div className='flex gap-2 items-end'>
 								<div className='flex-1 space-y-1'>
@@ -252,7 +253,7 @@ function NewSessionDialog({ onCreated }: { onCreated: () => void }) {
 								<Button
 									variant='outline'
 									size='sm'
-									onClick={() => fetchSlots(psychId)}
+									onClick={() => fetchSlots(specialistId)}
 									disabled={loadingSlots}
 									className='dark:border-gray-600 dark:text-gray-300 self-end'
 								>
@@ -308,18 +309,18 @@ function NewSessionDialog({ onCreated }: { onCreated: () => void }) {
 
 function SessionCard({
 	appointment,
-	isPsychologist,
+	isSpecialist,
 	now,
 	onCancelled,
 }: {
 	appointment: any;
-	isPsychologist: boolean;
+	isSpecialist: boolean;
 	now: Date;
 	onCancelled?: () => void;
 }) {
 	const token = localStorage.getItem('token') ?? '';
 	const [cancelling, setCancelling] = useState(false);
-	const myRole = isPsychologist ? 'PSYCHOLOGIST' : 'CLIENT';
+	const myRole = isSpecialist ? SPECIALIST_ROLE : 'CLIENT';
 	const otherParty =
 		appointment.attendees?.find((a: any) => a.role !== myRole) ??
 		appointment.attendees?.[0];
@@ -341,7 +342,7 @@ function SessionCard({
 	const duration = getDurationMin(appointment.start_at, appointment.ends_at);
 	const initials = getInitials(otherParty?.name ?? null);
 
-	const avatarColor = isPsychologist
+	const avatarColor = isSpecialist
 		? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400'
 		: 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400';
 
@@ -368,7 +369,7 @@ function SessionCard({
 								{otherParty?.name || '—'}
 							</h3>
 							<p className='text-sm text-gray-500 dark:text-gray-400'>
-								{isPsychologist ? 'Клиент' : 'Психолог'}
+								{isSpecialist ? 'Ученик' : 'Специалист'}
 							</p>
 						</div>
 					</div>
@@ -401,7 +402,7 @@ function SessionCard({
 				</div>
 
 				<div className='flex gap-2'>
-					{isPsychologist && otherParty?.user_id && (
+					{isSpecialist && otherParty?.user_id && (
 						<Link
 							to={`/clients/${otherParty.user_id}`}
 							className='flex-1'
@@ -411,15 +412,15 @@ function SessionCard({
 								className='w-full dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-600'
 							>
 								<User className='w-4 h-4 mr-2' />
-								Профиль клиента
+								Профиль ученика
 							</Button>
 						</Link>
 					)}
-					{!isPsychologist && otherParty && (
+					{!isSpecialist && otherParty && (
 						<div className='flex-1 flex items-center gap-2 px-3 py-2 rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'>
 							<User className='w-4 h-4 text-gray-400 flex-shrink-0' />
 							<span className='text-sm text-gray-700 dark:text-gray-200 truncate ml-3'>
-								{otherParty.name || 'Психолог'}
+								{otherParty.name || 'Специалист'}
 							</span>
 						</div>
 					)}
@@ -429,7 +430,7 @@ function SessionCard({
 							onClick={() => {
 								if (active) {
 									window.open(
-										`https://meet.jit.si/psyconsult-${appointment.id}`,
+										`https://meet.jit.si/lesson-${appointment.id}`,
 										'_blank',
 										'noopener,noreferrer',
 									);
@@ -442,10 +443,10 @@ function SessionCard({
 							}`}
 						>
 							<Video className='w-4 h-4 mr-2' />
-							{active ? 'Начать сессию' : 'Недоступно'}
+							{active ? 'Начать занятие' : 'Недоступно'}
 						</Button>
 					)}
-					{upcoming && !started && !isPsychologist && (
+					{upcoming && !started && !isSpecialist && (
 						<Button
 							variant='outline'
 							size='icon'
@@ -475,7 +476,7 @@ function SessionCard({
 
 export default function Sessions() {
 	const { profile } = useUser();
-	const isPsychologist = profile?.role === 'PSYCHOLOGIST';
+	const isSpecialist = profile?.role === SPECIALIST_ROLE;
 	const token = localStorage.getItem('token') ?? '';
 
 	const [upcoming, setUpcoming] = useState<any[]>([]);
@@ -494,10 +495,10 @@ export default function Sessions() {
 		setLoading(true);
 		setError('');
 		try {
-			if (isPsychologist) {
+			if (isSpecialist) {
 				const [upcomingData, completedData] = await Promise.all([
-					getPsyshologistAppointments(token, true),
-					getPsyshologistAppointments(token, false),
+					getSpecialistAppointments(token, true),
+					getSpecialistAppointments(token, false),
 				]);
 				setUpcoming(
 					(upcomingData ?? []).sort(
@@ -564,12 +565,12 @@ export default function Sessions() {
 						Расписание
 					</h1>
 					<p className='text-gray-500 dark:text-gray-400 mt-1'>
-						{isPsychologist
-							? 'Ваши консультации'
-							: 'Ваши записи к психологам'}
+						{isSpecialist
+							? 'Ваши занятия'
+							: 'Ваши записи к специалистам'}
 					</p>
 				</div>
-				{!isPsychologist && (
+				{!isSpecialist && (
 					<NewSessionDialog onCreated={fetchAppointments} />
 				)}
 			</div>
@@ -607,12 +608,12 @@ export default function Sessions() {
 										<SessionCard
 											key={a.id}
 											appointment={a}
-											isPsychologist={isPsychologist}
+											isSpecialist={isSpecialist}
 											now={now}
 											onCancelled={fetchAppointments}
 										/>
 									))
-								: empty('Нет запланированных сессий')}
+								: empty('Нет запланированных занятий')}
 						</div>
 					</TabsContent>
 
@@ -623,11 +624,11 @@ export default function Sessions() {
 										<SessionCard
 											key={a.id}
 											appointment={a}
-											isPsychologist={isPsychologist}
+											isSpecialist={isSpecialist}
 											now={now}
 										/>
 									))
-								: empty('Нет завершённых сессий')}
+								: empty('Нет завершённых занятий')}
 						</div>
 					</TabsContent>
 				</Tabs>

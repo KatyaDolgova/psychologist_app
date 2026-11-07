@@ -21,21 +21,23 @@ if TYPE_CHECKING:
 
 
 class AvailabilitySlot(BaseWithTimestamps):
-    """Слот доступности психолога.
+    """Слот доступности специалиста.
 
-    Конкретный отрезок времени, который психолог сделал доступным для записи.
+    Конкретный отрезок времени, который специалист сделал доступным для записи.
     Создаётся вручную (MANUAL) или генерируется из недельного шаблона (TEMPLATE).
-    Жизненный цикл: FREE → (клиент бронирует) → BOOKED → (психолог отменяет) → CANCELLED.
+    Жизненный цикл: FREE → (клиент бронирует) → BOOKED → (специалист отменяет) → CANCELLED.
     При отмене клиентом возвращается в FREE и снова доступен.
     """
 
-    __tablename__ = "psychologist_availability_slots"
+    __tablename__ = "specialist_availability_slots"
     __table_args__ = (
         CheckConstraint("ends_at > starts_at", name="ck_slot_time_order"),
-        UniqueConstraint("psychologist_id", "starts_at", name="uq_slot_psy_starts"),
+        UniqueConstraint(
+            "specialist_id", "starts_at", name="uq_slot_specialist_starts"
+        ),
         Index(
-            "ix_slots_psy_status_starts",
-            "psychologist_id",
+            "ix_slots_specialist_status_starts",
+            "specialist_id",
             "status",
             "starts_at",
         ),
@@ -45,7 +47,7 @@ class AvailabilitySlot(BaseWithTimestamps):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    psychologist_id: Mapped[int] = mapped_column(
+    specialist_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     starts_at: Mapped[datetime] = mapped_column(

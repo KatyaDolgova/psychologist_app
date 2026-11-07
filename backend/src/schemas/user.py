@@ -119,7 +119,7 @@ class TransactionSchema(BaseModel):
 class SessionSchema(BaseModel):
     id: int
     date: datetime
-    psychologist_id: int
+    specialist_id: int
     how_long: int
 
 

@@ -10,7 +10,7 @@ class AvailabilitySlotSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    psychologist_id: int
+    specialist_id: int
     starts_at: datetime
     ends_at: datetime
     status: SlotStatus

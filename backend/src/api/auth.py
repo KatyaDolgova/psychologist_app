@@ -49,7 +49,7 @@ async def auth_login(
 )
 async def auth_verify(
     login_data: VerifyCodeRequest,
-    user_type: Literal["client", "psychologist"] = "client",
+    user_type: Literal["client", "specialist"] = "client",
     auth_service: AuthService = Depends(),
 ) -> AuthResponse:
     response = await auth_service.verify_code(

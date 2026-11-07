@@ -1,7 +1,8 @@
 import { apiFetch, getErrorMessage } from './client';
+import { SPECIALISTS_API, USER_SPECIALISTS_API } from './contract';
 
-export const getPsyshologistProfile = async (token: string) => {
-	const url = '/psychologists/profile/';
+export const getSpecialistProfile = async (token: string) => {
+	const url = `${SPECIALISTS_API}/profile/`;
 	try {
 		const res = await apiFetch(url, {
 			headers: {
@@ -16,13 +17,13 @@ export const getPsyshologistProfile = async (token: string) => {
 		}
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка во время получения профиля психолога: ', error);
+		console.log('Ошибка во время получения профиля специалиста: ', error);
 		throw error;
 	}
 };
 
-export const updatePsyshologistProfile = async (token: string, form: any) => {
-	const url = '/psychologists/profile/';
+export const updateSpecialistProfile = async (token: string, form: any) => {
+	const url = `${SPECIALISTS_API}/profile/`;
 	try {
 		const res = await apiFetch(url, {
 			method: 'PATCH',
@@ -39,13 +40,13 @@ export const updatePsyshologistProfile = async (token: string, form: any) => {
 		}
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка во время обновления профиля психолога: ', error);
+		console.log('Ошибка во время обновления профиля специалиста: ', error);
 		throw error;
 	}
 };
 
-export const updatePsychologistPhoto = async (token: string, file: File) => {
-	const url = '/psychologists/profile/upload_photo/';
+export const updateSpecialistPhoto = async (token: string, file: File) => {
+	const url = `${SPECIALISTS_API}/profile/upload_photo/`;
 
 	try {
 		const formData = new FormData();
@@ -66,44 +67,18 @@ export const updatePsychologistPhoto = async (token: string, file: File) => {
 
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка во время обновления аватара психолога: ', error);
+		console.log('Ошибка во время обновления аватара специалиста: ', error);
 		throw error;
 	}
 };
 
-export const createAppointment = async (
-	token: string,
-	psychologist_id: number,
-	start_at: string,
-) => {
-	const url = '/user/appointments/';
-	try {
-		const res = await apiFetch(url, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${token}`,
-			},
-			body: JSON.stringify({ psychologist_id, start_at }),
-		});
-
-		if (!res.ok) {
-			const error = await res.json();
-			throw new Error(getErrorMessage(error));
-		}
-	} catch (error: any) {
-		console.log('Ошибка во время создания записей: ', error);
-		throw error;
-	}
-};
-
-export const getPsyshologistAppointments = async (
+export const getSpecialistAppointments = async (
 	token: string,
 	isUpcoming?: boolean,
 ) => {
 	const params = new URLSearchParams({ limit: '100', offset: '0' });
 	if (isUpcoming !== undefined) params.set('is_upcoming', String(isUpcoming));
-	const url = `/psychologists/appointments/?${params}`;
+	const url = `${SPECIALISTS_API}/appointments/?${params}`;
 	try {
 		const res = await apiFetch(url, {
 			headers: {
@@ -118,13 +93,13 @@ export const getPsyshologistAppointments = async (
 		}
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка во время получения записей психолога: ', error);
+		console.log('Ошибка во время получения записей специалиста: ', error);
 		throw error;
 	}
 };
 
-export const getPsychologistsForClient = async (token: string) => {
-	const url = '/user/psychologists/';
+export const getSpecialistsForClient = async (token: string) => {
+	const url = `${USER_SPECIALISTS_API}/`;
 	try {
 		const res = await apiFetch(url, {
 			headers: {
@@ -138,7 +113,7 @@ export const getPsychologistsForClient = async (token: string) => {
 		}
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка во время получения психологов: ', error);
+		console.log('Ошибка во время получения специалистов: ', error);
 		throw error;
 	}
 };
@@ -170,7 +145,7 @@ export const getAllAppointments = async (
 };
 
 export const addToFavorite = async (token: string, id: number) => {
-	const url = '/user/psychologists/favorites/';
+	const url = `${USER_SPECIALISTS_API}/favorites/`;
 	try {
 		const res = await apiFetch(url, {
 			method: 'POST',
@@ -187,7 +162,7 @@ export const addToFavorite = async (token: string, id: number) => {
 		}
 	} catch (error: any) {
 		console.log(
-			'Ошибка во время добавления психологов в избранное: ',
+			'Ошибка во время добавления специалистов в избранное: ',
 			error,
 		);
 		throw error;
@@ -195,7 +170,7 @@ export const addToFavorite = async (token: string, id: number) => {
 };
 
 export const getAllFavorites = async (token: string) => {
-	const url = '/user/psychologists/favorites/';
+	const url = `${USER_SPECIALISTS_API}/favorites/`;
 	try {
 		const res = await apiFetch(url, {
 			headers: {
@@ -211,13 +186,13 @@ export const getAllFavorites = async (token: string) => {
 
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка во время получения избранных психологов: ', error);
+		console.log('Ошибка во время получения избранных специалистов: ', error);
 		throw error;
 	}
 };
 
-export const deleteFavoritePsychologist = async (token: string, id: number) => {
-	const url = `/user/psychologists/favorites/${id}/`;
+export const deleteFavoriteSpecialist = async (token: string, id: number) => {
+	const url = `${USER_SPECIALISTS_API}/favorites/${id}/`;
 	try {
 		const res = await apiFetch(url, {
 			method: 'DELETE',
@@ -233,7 +208,7 @@ export const deleteFavoritePsychologist = async (token: string, id: number) => {
 		}
 	} catch (error: any) {
 		console.log(
-			'Ошибка во время получения удаления психолога из избранного: ',
+			'Ошибка во время получения удаления специалиста из избранного: ',
 			error,
 		);
 		throw error;
@@ -241,7 +216,7 @@ export const deleteFavoritePsychologist = async (token: string, id: number) => {
 };
 
 export const getWorkingHours = async (token: string) => {
-	const res = await apiFetch('/psychologists/template/', {
+	const res = await apiFetch(`${SPECIALISTS_API}/template/`, {
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${token}`,
@@ -252,7 +227,7 @@ export const getWorkingHours = async (token: string) => {
 };
 
 export const updateWorkingHours = async (token: string, ranges: any[]) => {
-	const res = await apiFetch('/psychologists/template/', {
+	const res = await apiFetch(`${SPECIALISTS_API}/template/`, {
 		method: 'PUT',
 		headers: {
 			'Content-Type': 'application/json',
@@ -264,8 +239,8 @@ export const updateWorkingHours = async (token: string, ranges: any[]) => {
 	return res.json();
 };
 
-export const getClientsForPsychologist = async (token: string) => {
-	const url = '/psychologists/clients/';
+export const getClientsForSpecialist = async (token: string) => {
+	const url = `${SPECIALISTS_API}/clients/`;
 	try {
 		const res = await apiFetch(url, {
 			headers: {
@@ -279,12 +254,12 @@ export const getClientsForPsychologist = async (token: string) => {
 		}
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка во время получения клиентов: ', error);
+		console.log('Ошибка во время получения учеников: ', error);
 		throw error;
 	}
 };
 
-export const getPsychologistAppointmentsForClient = async (
+export const getSpecialistAppointmentsForClient = async (
 	token: string,
 	client_id: number,
 	isUpcoming?: boolean,
@@ -295,7 +270,7 @@ export const getPsychologistAppointmentsForClient = async (
 		offset: '0',
 	});
 	if (isUpcoming !== undefined) params.set('is_upcoming', String(isUpcoming));
-	const url = `/psychologists/appointments/?${params}`;
+	const url = `${SPECIALISTS_API}/appointments/?${params}`;
 	try {
 		const res = await apiFetch(url, {
 			headers: {
@@ -309,16 +284,16 @@ export const getPsychologistAppointmentsForClient = async (
 		}
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка при получении сессий клиента:', error);
+		console.log('Ошибка при получении занятий ученика:', error);
 		throw error;
 	}
 };
 
-export const getClientForPsychologistByID = async (
+export const getClientForSpecialistByID = async (
 	token: string,
 	user_id: number,
 ) => {
-	const url = `/psychologists/clients/${user_id}`;
+	const url = `${SPECIALISTS_API}/clients/${user_id}`;
 	try {
 		const res = await apiFetch(url, {
 			headers: {
@@ -332,7 +307,7 @@ export const getClientForPsychologistByID = async (
 		}
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка во время получения клиента по ID: ', error);
+		console.log('Ошибка во время получения ученика по ID: ', error);
 		throw error;
 	}
 };
@@ -345,7 +320,7 @@ export const getMySlots = async (
 ) => {
 	const params = new URLSearchParams({ from_dt: fromDt, to_dt: toDt });
 	if (status) params.set('status', status);
-	const res = await apiFetch(`/psychologists/slots/?${params}`, {
+	const res = await apiFetch(`${SPECIALISTS_API}/slots/?${params}`, {
 		headers: { Authorization: `Bearer ${token}` },
 	});
 	if (!res.ok) throw new Error(getErrorMessage(await res.json()));
@@ -361,7 +336,7 @@ export const generateSlots = async (
 		from_date: fromDate,
 		to_date: toDate,
 	});
-	const res = await apiFetch(`/psychologists/slots/generate?${params}`, {
+	const res = await apiFetch(`${SPECIALISTS_API}/slots/generate?${params}`, {
 		method: 'POST',
 		headers: { Authorization: `Bearer ${token}` },
 	});
@@ -370,7 +345,7 @@ export const generateSlots = async (
 };
 
 export const createManualSlot = async (token: string, startsAt: string) => {
-	const res = await apiFetch('/psychologists/slots/', {
+	const res = await apiFetch(`${SPECIALISTS_API}/slots/`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
@@ -383,7 +358,7 @@ export const createManualSlot = async (token: string, startsAt: string) => {
 };
 
 export const deleteSlot = async (token: string, slotId: string) => {
-	const res = await apiFetch(`/psychologists/slots/${slotId}`, {
+	const res = await apiFetch(`${SPECIALISTS_API}/slots/${slotId}`, {
 		method: 'DELETE',
 		headers: { Authorization: `Bearer ${token}` },
 	});
@@ -396,7 +371,7 @@ export const cancelSlot = async (
 	slotId: string,
 	reason?: string,
 ) => {
-	const res = await apiFetch(`/psychologists/slots/${slotId}/cancel`, {
+	const res = await apiFetch(`${SPECIALISTS_API}/slots/${slotId}/cancel`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
@@ -410,13 +385,13 @@ export const cancelSlot = async (
 
 export const getFreeSlots = async (
 	token: string,
-	psychologistId: number,
+	specialistId: number,
 	fromDt: string,
 	toDt: string,
 ) => {
 	const params = new URLSearchParams({ from_dt: fromDt, to_dt: toDt });
 	const res = await apiFetch(
-		`/psychologists/${psychologistId}/free-slots/?${params}`,
+		`${SPECIALISTS_API}/${specialistId}/free-slots/?${params}`,
 		{ headers: { Authorization: `Bearer ${token}` } },
 	);
 	if (!res.ok) throw new Error(getErrorMessage(await res.json()));
@@ -449,7 +424,7 @@ export const cancelAppointment = async (
 };
 
 export const getClientNotes = async (token: string, client_id: number) => {
-	const url = `/psychologists/clients/${client_id}/notes`;
+	const url = `${SPECIALISTS_API}/clients/${client_id}/notes`;
 	try {
 		const res = await apiFetch(url, {
 			headers: {
@@ -463,7 +438,7 @@ export const getClientNotes = async (token: string, client_id: number) => {
 		}
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка во время получения записей о клиенте: ', error);
+		console.log('Ошибка во время получения записей о ученике: ', error);
 		throw error;
 	}
 };
@@ -473,7 +448,7 @@ export const createClientNote = async (
 	client_id: number,
 	text: string,
 ) => {
-	const url = `/psychologists/clients/${client_id}/notes`;
+	const url = `${SPECIALISTS_API}/clients/${client_id}/notes`;
 	try {
 		const res = await apiFetch(url, {
 			method: 'POST',
@@ -489,7 +464,7 @@ export const createClientNote = async (
 		}
 		return res.json();
 	} catch (error: any) {
-		console.log('Ошибка во время получения записей о клиенте: ', error);
+		console.log('Ошибка во время получения записей о ученике: ', error);
 		throw error;
 	}
 };
@@ -499,7 +474,7 @@ export const deleteClientNote = async (
 	client_id: number,
 	note_id: number,
 ) => {
-	const url = `/psychologists/clients/${client_id}/notes/${note_id}`;
+	const url = `${SPECIALISTS_API}/clients/${client_id}/notes/${note_id}`;
 	try {
 		const res = await apiFetch(url, {
 			method: 'DELETE',

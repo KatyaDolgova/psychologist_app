@@ -14,9 +14,9 @@ from src.models import AvailabilitySlot, SlotSource, SlotStatus
 
 
 class SlotManagementService:
-    """Управление одноразовыми слотами психологом (CRUD).
+    """Управление одноразовыми слотами специалистом (CRUD).
 
-    Создание выполняет pre-check на коллизию (одинаковый starts_at у того же psy),
+    Создание выполняет pre-check на коллизию (одинаковый starts_at у того же specialist),
     чтобы превратить ошибку уникальности БД в семантическое
     SlotCollisionError на уровне приложения.
     """
@@ -25,18 +25,18 @@ class SlotManagementService:
         self._store = store
 
     async def create_one_off(
-        self, psychologist_id: int, starts_at: datetime
+        self, specialist_id: int, starts_at: datetime
     ) -> AvailabilitySlot:
-        """Создаёт одноразовый MANUAL-слот длительностью из профиля психолога.
+        """Создаёт одноразовый MANUAL-слот длительностью из профиля специалиста.
 
         Защита от пересечений интервалов — на уровне БД через EXCLUDE-индекс
         no_slot_overlap; DAO ловит ошибку и поднимает SlotCollisionError.
         """
-        profile = await self._store.psychologist.find_by_id(model_id=psychologist_id)
+        profile = await self._store.specialist.find_by_id(model_id=specialist_id)
         duration = timedelta(minutes=profile.session_duration_minutes)
         slot = await self._store.availability_slot.add(
             return_model=True,
-            psychologist_id=psychologist_id,
+            specialist_id=specialist_id,
             starts_at=starts_at,
             ends_at=starts_at + duration,
             status=SlotStatus.FREE,
@@ -46,7 +46,7 @@ class SlotManagementService:
 
     async def update_starts_at(
         self,
-        psychologist_id: int,
+        specialist_id: int,
         slot_id: UUID,
         new_starts_at: datetime,
     ) -> AvailabilitySlot:
@@ -55,7 +55,7 @@ class SlotManagementService:
         Защита от пересечений — на уровне БД (EXCLUDE no_slot_overlap).
         DAO конвертирует IntegrityError в SlotCollisionError.
         """
-        slot = await self._fetch_owned(psychologist_id, slot_id)
+        slot = await self._fetch_owned(specialist_id, slot_id)
         if slot.status != SlotStatus.FREE:
             raise SlotNotFreeError()
 
@@ -65,23 +65,21 @@ class SlotManagementService:
         await self._store.availability_slot.flush_with_collision_check()
         return slot
 
-    async def delete(self, psychologist_id: int, slot_id: UUID) -> None:
+    async def delete(self, specialist_id: int, slot_id: UUID) -> None:
         """Удаляет FREE-слот.
 
-        Для BOOKED-слотов используйте `BookingService.cancel_by_psy`.
+        Для BOOKED-слотов используйте `BookingService.cancel_by_specialist`.
         """
-        slot = await self._fetch_owned(psychologist_id, slot_id)
+        slot = await self._fetch_owned(specialist_id, slot_id)
         if slot.status != SlotStatus.FREE:
             raise SlotNotFreeError()
         await self._store.session.delete(slot)
         await self._store.session.flush()
 
-    async def _fetch_owned(
-        self, psychologist_id: int, slot_id: UUID
-    ) -> AvailabilitySlot:
+    async def _fetch_owned(self, specialist_id: int, slot_id: UUID) -> AvailabilitySlot:
         slot = await self._store.session.get(AvailabilitySlot, slot_id)
         if slot is None:
             raise SlotNotFoundError()
-        if slot.psychologist_id != psychologist_id:
+        if slot.specialist_id != specialist_id:
             raise NotSlotOwnerError()
         return slot

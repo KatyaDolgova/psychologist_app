@@ -13,19 +13,19 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest_asyncio.fixture
-async def psy(store):
+async def specialist(store):
     user = await store.user.add(
         return_model=True,
-        email=f"psy-{uuid.uuid4()}@example.com",
-        roles=[UserRole.PSYCHOLOGIST.value],
+        email=f"specialist-{uuid.uuid4()}@example.com",
+        roles=[UserRole.SPECIALIST.value],
     )
     return user.id
 
 
-async def test_replace_with_two_non_overlapping_ranges_same_day_ok(store, psy):
+async def test_replace_with_two_non_overlapping_ranges_same_day_ok(store, specialist):
     service = WorkingHoursService(store=store)
     await service.replace_template(
-        psychologist_id=psy,
+        specialist_id=specialist,
         ranges=[
             TemplateRangeInput(
                 day_of_week=DayOfWeek.MONDAY,
@@ -39,15 +39,15 @@ async def test_replace_with_two_non_overlapping_ranges_same_day_ok(store, psy):
             ),
         ],
     )
-    rows = await store.working_hours.get_by_psychologist(psychologist_id=psy)
+    rows = await store.working_hours.get_by_specialist(specialist_id=specialist)
     assert len(rows) == 2
 
 
-async def test_replace_with_overlapping_same_day_raises(store, psy):
+async def test_replace_with_overlapping_same_day_raises(store, specialist):
     service = WorkingHoursService(store=store)
     with pytest.raises(TemplateRangeOverlapError):
         await service.replace_template(
-            psychologist_id=psy,
+            specialist_id=specialist,
             ranges=[
                 TemplateRangeInput(
                     day_of_week=DayOfWeek.MONDAY,
@@ -63,10 +63,10 @@ async def test_replace_with_overlapping_same_day_raises(store, psy):
         )
 
 
-async def test_replace_is_atomic_replacement(store, psy):
+async def test_replace_is_atomic_replacement(store, specialist):
     service = WorkingHoursService(store=store)
     await service.replace_template(
-        psychologist_id=psy,
+        specialist_id=specialist,
         ranges=[
             TemplateRangeInput(
                 day_of_week=DayOfWeek.MONDAY,
@@ -77,7 +77,7 @@ async def test_replace_is_atomic_replacement(store, psy):
     )
     # Replace with a single Tuesday range
     await service.replace_template(
-        psychologist_id=psy,
+        specialist_id=specialist,
         ranges=[
             TemplateRangeInput(
                 day_of_week=DayOfWeek.TUESDAY,
@@ -86,15 +86,15 @@ async def test_replace_is_atomic_replacement(store, psy):
             ),
         ],
     )
-    rows = await store.working_hours.get_by_psychologist(psychologist_id=psy)
+    rows = await store.working_hours.get_by_specialist(specialist_id=specialist)
     assert len(rows) == 1
     assert rows[0].day_of_week == DayOfWeek.TUESDAY
 
 
-async def test_replace_different_days_allowed(store, psy):
+async def test_replace_different_days_allowed(store, specialist):
     service = WorkingHoursService(store=store)
     await service.replace_template(
-        psychologist_id=psy,
+        specialist_id=specialist,
         ranges=[
             TemplateRangeInput(
                 day_of_week=DayOfWeek.MONDAY,
@@ -108,5 +108,5 @@ async def test_replace_different_days_allowed(store, psy):
             ),
         ],
     )
-    rows = await store.working_hours.get_by_psychologist(psychologist_id=psy)
+    rows = await store.working_hours.get_by_specialist(specialist_id=specialist)
     assert len(rows) == 2

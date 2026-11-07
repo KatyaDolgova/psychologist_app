@@ -12,19 +12,19 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest_asyncio.fixture
-async def psy(store):
+async def specialist(store):
     user = await store.user.add(
         return_model=True,
-        email=f"psy-{uuid.uuid4()}@example.com",
-        roles=[UserRole.PSYCHOLOGIST.value],
+        email=f"specialist-{uuid.uuid4()}@example.com",
+        roles=[UserRole.SPECIALIST.value],
     )
     return user.id
 
 
-async def _add_slot(store, psy, starts_at, status):
+async def _add_slot(store, specialist, starts_at, status):
     return await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy,
+        specialist_id=specialist,
         starts_at=starts_at,
         ends_at=starts_at + timedelta(hours=1),
         status=status,
@@ -32,15 +32,17 @@ async def _add_slot(store, psy, starts_at, status):
     )
 
 
-async def test_cleanup_deletes_only_old_free_slots(store, psy):
+async def test_cleanup_deletes_only_old_free_slots(store, specialist):
     now = datetime.now(timezone.utc)
     # Old FREE — should be deleted
-    old_free = await _add_slot(store, psy, now - timedelta(days=30), SlotStatus.FREE)
+    old_free = await _add_slot(
+        store, specialist, now - timedelta(days=30), SlotStatus.FREE
+    )
     # Must be kept: old BOOKED, future FREE, recent FREE inside the 7-day buffer
     kept = [
-        await _add_slot(store, psy, now - timedelta(days=20), SlotStatus.BOOKED),
-        await _add_slot(store, psy, now + timedelta(days=10), SlotStatus.FREE),
-        await _add_slot(store, psy, now - timedelta(days=3), SlotStatus.FREE),
+        await _add_slot(store, specialist, now - timedelta(days=20), SlotStatus.BOOKED),
+        await _add_slot(store, specialist, now + timedelta(days=10), SlotStatus.FREE),
+        await _add_slot(store, specialist, now - timedelta(days=3), SlotStatus.FREE),
     ]
     old_free_id = old_free.id
     kept_ids = [slot.id for slot in kept]

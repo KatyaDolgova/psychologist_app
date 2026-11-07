@@ -22,13 +22,13 @@ import {
 	DialogTrigger,
 } from './ui/dialog';
 import {
-	getPsychologistsForClient,
+	getSpecialistsForClient,
 	addToFavorite,
 	getAllFavorites,
-	deleteFavoritePsychologist,
+	deleteFavoriteSpecialist,
 	getFreeSlots,
 	bookSlot,
-} from '../../api/psychologist';
+} from '../../api/specialist';
 import { createDirectChat } from '../../api/chats';
 
 const METHOD_LABELS: Record<string, string> = {
@@ -74,7 +74,7 @@ function ConfirmRemoveDialog({
 					</DialogTitle>
 				</DialogHeader>
 				<p className='text-sm text-gray-600 dark:text-gray-300 mt-1'>
-					{name} будет удалён из вашего списка избранных психологов.
+					{name} будет удалён из вашего списка избранных специалистов.
 				</p>
 				<div className='flex gap-3 mt-4'>
 					<Button
@@ -103,10 +103,10 @@ interface FreeSlot {
 }
 
 function BookingDialog({
-	psychologist,
+	specialist,
 	onBooked,
 }: {
-	psychologist: any;
+	specialist: any;
 	onBooked: () => void;
 }) {
 	const token = localStorage.getItem('token') ?? '';
@@ -131,7 +131,7 @@ function BookingDialog({
 		try {
 			const data: FreeSlot[] = await getFreeSlots(
 				token,
-				psychologist.id,
+				specialist.id,
 				`${from}T00:00:00Z`,
 				`${to}T23:59:59Z`,
 			);
@@ -196,8 +196,8 @@ function BookingDialog({
 			<DialogContent className='dark:bg-gray-800 dark:border-gray-700 max-w-md'>
 				<DialogHeader>
 					<DialogTitle className='dark:text-white'>
-						Запись к {psychologist.first_name}{' '}
-						{psychologist.last_name}
+						Запись к {specialist.first_name}{' '}
+						{specialist.last_name}
 					</DialogTitle>
 				</DialogHeader>
 				<div className='space-y-4 mt-2'>
@@ -289,10 +289,10 @@ function BookingDialog({
 	);
 }
 
-export default function Psychologists() {
+export default function Specialists() {
 	const token = localStorage.getItem('token') ?? '';
 	const navigate = useNavigate();
-	const [psychologists, setPsychologists] = useState<any[]>([]);
+	const [specialists, setSpecialists] = useState<any[]>([]);
 	const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
@@ -321,10 +321,10 @@ export default function Psychologists() {
 		setError('');
 		try {
 			const [list, favs] = await Promise.all([
-				getPsychologistsForClient(token),
+				getSpecialistsForClient(token),
 				getAllFavorites(token),
 			]);
-			setPsychologists(list);
+			setSpecialists(list);
 			setFavoriteIds(new Set((favs as any[]).map((f: any) => f.id)));
 		} catch (e: any) {
 			setError(e.message || 'Ошибка при загрузке');
@@ -352,7 +352,7 @@ export default function Psychologists() {
 		setTogglingId(id);
 		try {
 			if (isRemoving) {
-				await deleteFavoritePsychologist(token, id);
+				await deleteFavoriteSpecialist(token, id);
 				setFavoriteIds((prev) => {
 					const next = new Set(prev);
 					next.delete(id);
@@ -379,7 +379,7 @@ export default function Psychologists() {
 		}
 	};
 
-	const filtered = psychologists.filter((p) => {
+	const filtered = specialists.filter((p) => {
 		const fullName =
 			`${p.first_name ?? ''} ${p.last_name ?? ''}`.toLowerCase();
 		return fullName.includes(search.toLowerCase());
@@ -389,10 +389,10 @@ export default function Psychologists() {
 		<div className='p-8 bg-gray-50 dark:bg-gray-900 min-h-screen'>
 			<div className='mb-8'>
 				<h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-					Психологи
+					Специалисты
 				</h1>
 				<p className='text-gray-500 dark:text-gray-400 mt-1'>
-					Выберите специалиста и запишитесь на консультацию
+					Выберите специалиста и запишитесь на занятие
 				</p>
 			</div>
 
@@ -427,8 +427,8 @@ export default function Psychologists() {
 				<div className='text-center py-24'>
 					<p className='text-gray-500 dark:text-gray-400'>
 						{search
-							? 'Психологи не найдены'
-							: 'Список психологов пуст'}
+							? 'Специалисты не найдены'
+							: 'Список специалистов пуст'}
 					</p>
 				</div>
 			) : (
@@ -463,7 +463,7 @@ export default function Psychologists() {
 													{p.first_name} {p.last_name}
 												</h3>
 												<p className='text-sm text-gray-500 dark:text-gray-400'>
-													Психолог
+													Специалист
 												</p>
 											</div>
 										</div>
@@ -538,7 +538,7 @@ export default function Psychologists() {
 										{p.price != null && (
 											<div className='flex items-center justify-between text-sm'>
 												<span className='text-gray-500 dark:text-gray-400'>
-													Стоимость сессии
+													Стоимость занятия
 												</span>
 												<span className='font-medium text-gray-900 dark:text-gray-200'>
 													{p.price} ₽
@@ -565,7 +565,7 @@ export default function Psychologists() {
 									)}
 									<div className='flex gap-2'>
 										<BookingDialog
-											psychologist={p}
+											specialist={p}
 											onBooked={() => showBooked(p.id)}
 										/>
 									</div>

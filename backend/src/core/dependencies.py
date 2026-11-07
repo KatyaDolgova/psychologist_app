@@ -24,7 +24,7 @@ def get_store(session: AsyncSession = Depends(get_async_db)) -> Store:
 
 
 async def check_token_dependency(
-    token_type: Literal["CLIENT", "ADMIN", "PSYCHOLOGIST"] = Query(...),
+    token_type: Literal["CLIENT", "ADMIN", "SPECIALIST"] = Query(...),
     credentials=Depends(bearer_scheme),
     store: Store = Depends(get_store),
 ):
@@ -43,13 +43,13 @@ async def get_current_user_id(
     return token_info.user_id
 
 
-async def get_current_psychologist_id(
+async def get_current_specialist_id(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     store: Store = Depends(get_store),
 ) -> int:
     token_info = await _get_current_entity(
         credentials=credentials,
-        expected_type="PSYCHOLOGIST",
+        expected_type="SPECIALIST",
         store=store,
     )
     return token_info.user_id
@@ -106,12 +106,12 @@ async def get_ws_user(
                     role="CLIENT",
                     avatar=ws_user.avatar,
                 )
-            case "PSYCHOLOGIST":
-                ws_user = await store.psychologist.get_name_and_avatar(user_id=user_id)
+            case "SPECIALIST":
+                ws_user = await store.specialist.get_name_and_avatar(user_id=user_id)
                 return WSUser(
                     id=user_id,
                     name=f"{ws_user.first_name} {ws_user.last_name}",
-                    role="PSYCHOLOGIST",
+                    role="SPECIALIST",
                     avatar=ws_user.avatar,
                 )
         return None
@@ -148,7 +148,7 @@ async def check_token(
 async def _get_current_entity(
     *,
     credentials: HTTPAuthorizationCredentials,
-    expected_type: Literal["CLIENT", "ADMIN", "PSYCHOLOGIST"] | None = None,
+    expected_type: Literal["CLIENT", "ADMIN", "SPECIALIST"] | None = None,
     store: Store,
 ) -> TokenInfo:
     """Проверка токена и извлечение пользователя или креатора."""
@@ -171,7 +171,7 @@ async def _get_current_entity(
 
 async def check_token_info(
     token: str,
-    expected_type: Literal["CLIENT", "ADMIN", "PSYCHOLOGIST"] | None,
+    expected_type: Literal["CLIENT", "ADMIN", "SPECIALIST"] | None,
     store: Store,
 ) -> TokenInfo:
     credentials_exception = HTTPException(

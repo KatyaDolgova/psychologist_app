@@ -11,7 +11,7 @@ class UserFavorite(BaseWithTimestamps):
 
     __table_args__ = (
         UniqueConstraint(
-            "user_id", "psychologist_id", name="uq_favorites_user_psychologist"
+            "user_id", "specialist_id", name="uq_favorites_user_specialist"
         ),
     )
 
@@ -19,4 +19,4 @@ class UserFavorite(BaseWithTimestamps):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("client_profiles.id", ondelete="CASCADE")
     )
-    psychologist_id: Mapped[int] = mapped_column(ForeignKey("psychologist_profiles.id"))
+    specialist_id: Mapped[int] = mapped_column(ForeignKey("specialist_profiles.id"))

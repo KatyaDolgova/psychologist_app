@@ -1,3 +1,4 @@
+import { SPECIALIST_ROLE } from '../../api/contract';
 import {
 	createContext,
 	useCallback,
@@ -7,9 +8,9 @@ import {
 	type ReactNode,
 } from 'react';
 import { getUser } from '../../api/profile';
-import { getPsyshologistProfile } from '../../api/psychologist';
+import { getSpecialistProfile } from '../../api/specialist';
 
-export type UserRole = 'CLIENT' | 'PSYCHOLOGIST';
+export type UserRole = 'CLIENT' | typeof SPECIALIST_ROLE;
 
 export interface UserProfile {
 	role: UserRole;
@@ -50,10 +51,10 @@ function fixAvatarUrl(url: string | null): string | null {
 
 function buildProfile(role: UserRole, data: any): UserProfile {
 	const avatar = fixAvatarUrl(data.avatar ?? null);
-	if (role === 'PSYCHOLOGIST') {
+	if (role === SPECIALIST_ROLE) {
 		const first = data.first_name || '';
 		const last = data.last_name || '';
-		const displayName = last ? `Др. ${last}` : first || 'Психолог';
+		const displayName = last ? `Др. ${last}` : first || 'Специалист';
 		const initials =
 			[first[0], last[0]].filter(Boolean).join('').toUpperCase() || 'П';
 		return { role, displayName, initials, avatar, data };
@@ -87,9 +88,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
 			return;
 		}
 		try {
-			if (decoded.type === 'PSYCHOLOGIST') {
-				const data = await getPsyshologistProfile(token);
-				setProfile(buildProfile('PSYCHOLOGIST', data));
+			if (decoded.type === SPECIALIST_ROLE) {
+				const data = await getSpecialistProfile(token);
+				setProfile(buildProfile(SPECIALIST_ROLE, data));
 			} else {
 				const data = await getUser(token);
 				setProfile(buildProfile('CLIENT', data));

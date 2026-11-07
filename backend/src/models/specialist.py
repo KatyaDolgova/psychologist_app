@@ -10,8 +10,8 @@ from src.models.enums import MethodFormat
 JSON_AUTO = SA_JSON().with_variant(JSONB(), "postgresql")
 
 
-class PsychologistProfile(BaseWithTimestamps):
-    __tablename__ = "psychologist_profiles"
+class SpecialistProfile(BaseWithTimestamps):
+    __tablename__ = "specialist_profiles"
     __table_args__ = (
         CheckConstraint(
             "session_duration_minutes > 0 AND session_duration_minutes <= 480",
@@ -23,7 +23,7 @@ class PsychologistProfile(BaseWithTimestamps):
         ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
 
-    user = relationship("User", back_populates="psychologist_profile")
+    user = relationship("User", back_populates="specialist_profile")
     first_name: Mapped[str | None]
     last_name: Mapped[str | None]
     avatar: Mapped[str | None]

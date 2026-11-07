@@ -167,24 +167,24 @@ class SlotInPastError(BaseError):
 
 
 class SlotNotFreeError(BaseError):
-    """Психолог пытается изменить или удалить слот, который не FREE."""
+    """Специалист пытается изменить или удалить слот, который не FREE."""
 
     status_code = status.HTTP_409_CONFLICT
     detail = "Слот не находится в статусе FREE"
 
 
 class SlotNotBookedError(BaseError):
-    """Психолог пытается отменить слот, который не BOOKED."""
+    """Специалист пытается отменить слот, который не BOOKED."""
 
     status_code = status.HTTP_409_CONFLICT
     detail = "Слот не забронирован"
 
 
 class SlotCollisionError(BaseError):
-    """У психолога уже есть слот с таким же временем начала."""
+    """У специалиста уже есть слот с таким же временем начала."""
 
     status_code = status.HTTP_409_CONFLICT
-    detail = "У психолога уже есть слот в это время"
+    detail = "У специалиста уже есть слот в это время"
 
 
 class TemplateRangeOverlapError(BaseError):
@@ -202,10 +202,10 @@ class SlotRangeTooWideError(BaseError):
 
 
 class NotSlotOwnerError(BaseError):
-    """Психолог не является владельцем слота."""
+    """Специалист не является владельцем слота."""
 
     status_code = status.HTTP_403_FORBIDDEN
-    detail = "Психолог не является владельцем слота"
+    detail = "Специалист не является владельцем слота"
 
 
 class NotAppointmentAttendeeError(BaseError):

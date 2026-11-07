@@ -33,7 +33,7 @@ async def teacher_id(store):
     user = await store.user.add(
         return_model=True,
         email=f"t-{uuid.uuid4()}@example.com",
-        roles=[UserRole.PSYCHOLOGIST.value],
+        roles=[UserRole.SPECIALIST.value],
     )
     return user.id
 

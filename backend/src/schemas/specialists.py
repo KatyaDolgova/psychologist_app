@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from src.models import UserGender
 
 
-class PsychologistResponse(BaseModel):
+class SpecialistResponse(BaseModel):
     id: int
     first_name: str
     last_name: str
@@ -20,7 +20,7 @@ class PsychologistResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PsychologistProfileSchema(BaseModel):
+class SpecialistProfileSchema(BaseModel):
     id: int
     email: str
     first_name: str | None
@@ -36,7 +36,7 @@ class PsychologistProfileSchema(BaseModel):
     session_duration_minutes: int | None = None
 
 
-class PsychologistProfileUpdate(BaseModel):
+class SpecialistProfileUpdate(BaseModel):
     email: str | None = None
     first_name: str | None = None
     last_name: str | None = None

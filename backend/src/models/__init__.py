@@ -17,8 +17,8 @@ from src.models.favorites import UserFavorite
 from src.models.lesson import Lesson
 from src.models.lesson_transcript import LessonTranscript
 from src.models.payment_method import PaymentMethod
-from src.models.psychologist import PsychologistProfile
-from src.models.psychologist_schedule import PsychologistWorkingHours
+from src.models.specialist import SpecialistProfile
+from src.models.specialist_schedule import SpecialistWorkingHours
 from src.models.user import AdminProfile, User
 
 __all__ = [
@@ -30,8 +30,8 @@ __all__ = [
     "UserRole",
     "ClientProfile",
     "ClientNote",
-    "PsychologistProfile",
-    "PsychologistWorkingHours",
+    "SpecialistProfile",
+    "SpecialistWorkingHours",
     "UserFavorite",
     "AdminProfile",
     "AdminRole",

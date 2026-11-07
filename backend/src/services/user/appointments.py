@@ -45,8 +45,8 @@ class AppointmentService:
                     user_id=client_id, role=AppointmentRole.CLIENT
                 ),
                 AppointmentAttendeeSchema(
-                    user_id=slot.psychologist_id,
-                    role=AppointmentRole.PSYCHOLOGIST,
+                    user_id=slot.specialist_id,
+                    role=AppointmentRole.SPECIALIST,
                 ),
             ],
         )
@@ -108,19 +108,19 @@ class AppointmentService:
             is_upcoming=is_upcoming,
         )
 
-    async def get_psychologist_appointments(
+    async def get_specialist_appointments(
         self,
-        psychologist_id: int,
+        specialist_id: int,
         limit: int,
         offset: int,
         is_upcoming: bool = True,
         client_id: int | None = None,
     ) -> list[AppointmentSchema]:
         return await self._get_user_appointments(
-            client_id=psychologist_id,
+            client_id=specialist_id,
             limit=limit,
             offset=offset,
-            user_type=AppointmentRole.PSYCHOLOGIST,
+            user_type=AppointmentRole.SPECIALIST,
             is_upcoming=is_upcoming,
             filter_client_id=client_id,
         )

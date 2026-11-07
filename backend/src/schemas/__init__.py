@@ -6,9 +6,9 @@ from src.schemas.auth import (
     VerifyCodeRequest,
 )
 from src.schemas.calls import CallTokenRequest, CallTokenResponse
-from src.schemas.favorites_psychologists import (
-    FavoritesPsychologistsResponse,
-    PsychologistID,
+from src.schemas.favorites_specialists import (
+    FavoritesSpecialistsResponse,
+    SpecialistID,
 )
 from src.schemas.groups import GroupRequest
 from src.schemas.payment_methods import SBP, ProfilePaymentMethod
@@ -32,8 +32,8 @@ __all__ = [
     "SBP",
     "CallTokenResponse",
     "CallTokenRequest",
-    "FavoritesPsychologistsResponse",
-    "PsychologistID",
+    "FavoritesSpecialistsResponse",
+    "SpecialistID",
     "UserForAdmin",
     "UserDetailForAdmin",
     "UserUpdateRequestForAdmin",

@@ -7,17 +7,17 @@ from src.models.base import BaseWithTimestamps
 from src.models.enums.schedules import DayOfWeek
 
 
-class PsychologistWorkingHours(BaseWithTimestamps):
-    """Диапазон рабочих часов психолога в шаблоне недели.
+class SpecialistWorkingHours(BaseWithTimestamps):
+    """Диапазон рабочих часов специалиста в шаблоне недели.
 
     Может быть несколько диапазонов в одном дне недели (например, утро + вечер).
     Используется как источник для генерации слотов доступности (SlotSource=TEMPLATE).
     """
 
-    __tablename__ = "psychologist_working_hours"
+    __tablename__ = "specialist_working_hours"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    psychologist_id: Mapped[int] = mapped_column(
+    specialist_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE")
     )
     day_of_week: Mapped[DayOfWeek] = mapped_column(Enum(DayOfWeek))

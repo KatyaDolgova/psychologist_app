@@ -5,19 +5,19 @@ import pytest
 import pytest_asyncio
 
 from src.models.enums import DayOfWeek, UserRole
-from src.tasks.extend_slot_horizon import extend_horizon_for_psy
+from src.tasks.extend_slot_horizon import extend_horizon_for_specialist
 
 pytestmark = pytest.mark.asyncio
 
 
 @pytest_asyncio.fixture
-async def psy_with_template(store):
+async def specialist_with_template(store):
     user = await store.user.add(
         return_model=True,
-        email=f"psy-{uuid.uuid4()}@example.com",
-        roles=[UserRole.PSYCHOLOGIST.value],
+        email=f"specialist-{uuid.uuid4()}@example.com",
+        roles=[UserRole.SPECIALIST.value],
     )
-    await store.psychologist.add(
+    await store.specialist.add(
         return_model=False,
         id=user.id,
         first_name="T",
@@ -27,7 +27,7 @@ async def psy_with_template(store):
     )
     await store.working_hours.add(
         return_model=False,
-        psychologist_id=user.id,
+        specialist_id=user.id,
         day_of_week=DayOfWeek.MONDAY,
         start_time=time(9, 0),
         end_time=time(12, 0),
@@ -36,31 +36,35 @@ async def psy_with_template(store):
     return user.id
 
 
-async def test_extend_horizon_creates_slots_up_to_target(store, psy_with_template):
+async def test_extend_horizon_creates_slots_up_to_target(
+    store, specialist_with_template
+):
     target = date.today() + timedelta(days=14)
-    created = await extend_horizon_for_psy(
-        store=store, psychologist_id=psy_with_template, target=target
+    created = await extend_horizon_for_specialist(
+        store=store, specialist_id=specialist_with_template, target=target
     )
     assert created > 0
 
 
-async def test_extend_horizon_target_in_past_returns_zero(store, psy_with_template):
+async def test_extend_horizon_target_in_past_returns_zero(
+    store, specialist_with_template
+):
     target = date.today() - timedelta(days=5)
-    created = await extend_horizon_for_psy(
-        store=store, psychologist_id=psy_with_template, target=target
+    created = await extend_horizon_for_specialist(
+        store=store, specialist_id=specialist_with_template, target=target
     )
     # No matter what (no slots yet, but target is past) — should be 0
     # because the SlotGenerationService rejects from_date > to_date naturally
     assert created == 0
 
 
-async def test_extend_horizon_idempotent(store, psy_with_template):
+async def test_extend_horizon_idempotent(store, specialist_with_template):
     target = date.today() + timedelta(days=14)
-    first = await extend_horizon_for_psy(
-        store=store, psychologist_id=psy_with_template, target=target
+    first = await extend_horizon_for_specialist(
+        store=store, specialist_id=specialist_with_template, target=target
     )
-    second = await extend_horizon_for_psy(
-        store=store, psychologist_id=psy_with_template, target=target
+    second = await extend_horizon_for_specialist(
+        store=store, specialist_id=specialist_with_template, target=target
     )
     assert first > 0
     assert second == 0  # all already generated; from_date > target

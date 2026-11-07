@@ -1,6 +1,6 @@
 """Shared fixtures for integration API tests.
 
-Provides authed_psy/authed_client TestClient fixtures that bypass the full
+Provides authed_specialist/authed_client TestClient fixtures that bypass the full
 OTP auth flow via FastAPI dependency overrides. Tests focus on slot/booking
 logic, not auth.
 """
@@ -13,20 +13,20 @@ import pytest_asyncio
 from main import app
 from src.core.dependencies import (
     get_any_user_id,
-    get_current_psychologist_id,
+    get_current_specialist_id,
     get_current_user_id,
 )
 from src.models.enums import UserRole
 
 
 @pytest_asyncio.fixture
-async def psy_id(store):
+async def specialist_id(store):
     user = await store.user.add(
         return_model=True,
-        email=f"psy-{uuid.uuid4()}@example.com",
-        roles=[UserRole.PSYCHOLOGIST.value],
+        email=f"specialist-{uuid.uuid4()}@example.com",
+        roles=[UserRole.SPECIALIST.value],
     )
-    await store.psychologist.add(
+    await store.specialist.add(
         return_model=False,
         id=user.id,
         first_name="T",
@@ -54,12 +54,12 @@ async def client_id(store):
 
 
 @pytest.fixture
-def authed_psy(client, psy_id):
-    """TestClient pre-authed as a psy (FastAPI dependency override)."""
-    app.dependency_overrides[get_current_psychologist_id] = lambda: psy_id
-    app.dependency_overrides[get_any_user_id] = lambda: psy_id
+def authed_specialist(client, specialist_id):
+    """TestClient pre-authed as a specialist (FastAPI dependency override)."""
+    app.dependency_overrides[get_current_specialist_id] = lambda: specialist_id
+    app.dependency_overrides[get_any_user_id] = lambda: specialist_id
     yield client
-    app.dependency_overrides.pop(get_current_psychologist_id, None)
+    app.dependency_overrides.pop(get_current_specialist_id, None)
     app.dependency_overrides.pop(get_any_user_id, None)
 
 

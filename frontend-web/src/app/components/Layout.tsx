@@ -1,3 +1,4 @@
+import { SPECIALIST_ROLE } from '../../api/contract';
 import React from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import {
@@ -25,16 +26,16 @@ type NavItem = {
 	exact?: boolean;
 };
 
-const NAV_ITEMS_PSYCHOLOGIST: NavItem[] = [
+const NAV_ITEMS_SPECIALIST: NavItem[] = [
 	{ to: '/', icon: LayoutDashboard, label: 'Дашборд', exact: true },
-	{ to: '/clients', icon: Users, label: 'Клиенты' },
+	{ to: '/clients', icon: Users, label: 'Ученики' },
 	{ to: '/sessions', icon: Calendar, label: 'Расписание' },
 	{ to: '/chats', icon: MessageSquare, label: 'Сообщения' },
 	{ to: '/working-hours', icon: Clock, label: 'Рабочие часы' },
 ];
 
 const NAV_ITEMS_CLIENT: NavItem[] = [
-	{ to: '/psychologists', icon: Users, label: 'Психологи' },
+	{ to: '/specialists', icon: Users, label: 'Специалисты' },
 	{ to: '/favorites', icon: Heart, label: 'Избранное' },
 	{ to: '/sessions', icon: Calendar, label: 'Расписание' },
 	{ to: '/chats', icon: MessageSquare, label: 'Сообщения' },
@@ -107,10 +108,10 @@ function LayoutInner() {
 		navigate('/auth');
 	};
 
-	const isPsychologist = profile?.role === 'PSYCHOLOGIST';
-	const roleLabel = isPsychologist ? 'Психолог' : 'Пользователь';
-	const NAV_ITEMS = isPsychologist
-		? NAV_ITEMS_PSYCHOLOGIST
+	const isSpecialist = profile?.role === SPECIALIST_ROLE;
+	const roleLabel = isSpecialist ? 'Специалист' : 'Ученик';
+	const NAV_ITEMS = isSpecialist
+		? NAV_ITEMS_SPECIALIST
 		: NAV_ITEMS_CLIENT;
 
 	return (
@@ -118,7 +119,7 @@ function LayoutInner() {
 			<aside className='w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col'>
 				<div className='p-6 border-b border-gray-200 dark:border-gray-700'>
 					<h1 className='text-xl font-semibold text-gray-900 dark:text-white'>
-						PsyConsult
+						Онлайн-уроки
 					</h1>
 					<h5 className='text-sm text-gray-500 dark:text-white mt-1'>
 						Рабочее пространство
@@ -144,7 +145,7 @@ function LayoutInner() {
 						<div
 							className={`flex items-center mb-3 p-2 rounded-lg cursor-pointer transition-colors ${
 								isActive('/profile')
-									? isPsychologist
+									? isSpecialist
 										? 'bg-purple-50 dark:bg-purple-900/30'
 										: 'bg-blue-50 dark:bg-blue-900/30'
 									: 'hover:bg-gray-100 dark:hover:bg-gray-700'
@@ -152,7 +153,7 @@ function LayoutInner() {
 						>
 							<div
 								className={`w-10 h-10 rounded-full overflow-hidden flex items-center justify-center font-semibold flex-shrink-0 ${
-									isPsychologist
+									isSpecialist
 										? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-400'
 										: 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-400'
 								}`}

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class Appointment(BaseWithTimestamps):
-    """Запись клиента к психологу — результат бронирования слота.
+    """Запись клиента к специалисту — результат бронирования слота.
 
     Время начала/окончания приёма берётся из связанного AvailabilitySlot.
     Колонки start_at/ends_at на этой таблице больше не хранятся;
@@ -26,7 +26,7 @@ class Appointment(BaseWithTimestamps):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     slot_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("psychologist_availability_slots.id", ondelete="RESTRICT"),
+        ForeignKey("specialist_availability_slots.id", ondelete="RESTRICT"),
         nullable=False,
     )
     is_group: Mapped[bool] = mapped_column(Boolean, default=False)

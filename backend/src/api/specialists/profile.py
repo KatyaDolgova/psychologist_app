@@ -1,21 +1,21 @@
 from fastapi import APIRouter, Depends, UploadFile
 
-from src.core.dependencies import get_current_psychologist_id
+from src.core.dependencies import get_current_specialist_id
 from src.models import UserRole
 from src.schemas import EmptyModel
-from src.schemas.psychologists import (
-    PsychologistProfileSchema,
-    PsychologistProfileUpdate,
+from src.schemas.specialists import (
+    SpecialistProfileSchema,
+    SpecialistProfileUpdate,
 )
-from src.services.psychologists_service import PsychologistService
+from src.services.specialists_service import SpecialistService
 from src.services.user import UserService
 
-router = APIRouter(tags=["Psychologists Profile"])
+router = APIRouter(tags=["Specialists Profile"])
 
 
 @router.get(
     "/",
-    summary="Get psychologist profile",
+    summary="Get specialist profile",
     description="Получить список всех записей",
     responses={
         401: {
@@ -27,11 +27,11 @@ router = APIRouter(tags=["Psychologists Profile"])
     },
 )
 async def get_all_appointments(
-    current_psychologist: int = Depends(get_current_psychologist_id),
-    service: PsychologistService = Depends(),
-) -> PsychologistProfileSchema:
+    current_specialist: int = Depends(get_current_specialist_id),
+    service: SpecialistService = Depends(),
+) -> SpecialistProfileSchema:
     return await service.get_profile(
-        psychologist_id=current_psychologist,
+        specialist_id=current_specialist,
     )
 
 
@@ -60,9 +60,9 @@ async def get_all_appointments(
     },
 )
 async def update_profile(
-    data: PsychologistProfileUpdate,
-    user_id: int = Depends(get_current_psychologist_id),
-    user_service: PsychologistService = Depends(),
+    data: SpecialistProfileUpdate,
+    user_id: int = Depends(get_current_specialist_id),
+    user_service: SpecialistService = Depends(),
 ):
     return await user_service.update_profile(user_id=user_id, data=data)
 
@@ -90,9 +90,9 @@ async def update_profile(
 )
 async def update_avatar(
     image: UploadFile,
-    user_id: int = Depends(get_current_psychologist_id),
+    user_id: int = Depends(get_current_specialist_id),
     user_service: UserService = Depends(),
 ) -> EmptyModel:
     return await user_service.upload_photo(
-        user_id=user_id, image=image, user_role=UserRole.PSYCHOLOGIST
+        user_id=user_id, image=image, user_role=UserRole.SPECIALIST
     )

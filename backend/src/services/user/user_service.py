@@ -131,8 +131,8 @@ class UserService:
                 return_model=False,
                 avatar=image_url,
             )
-        elif user_role == UserRole.PSYCHOLOGIST:
-            await self._store.psychologist.update(
+        elif user_role == UserRole.SPECIALIST:
+            await self._store.specialist.update(
                 model_id=user_id,
                 return_model=False,
                 avatar=image_url,
@@ -172,7 +172,7 @@ class UserService:
                 SessionSchema(
                     id=1,
                     date=datetime.now(timezone.utc),
-                    psychologist_id=9,
+                    specialist_id=9,
                     how_long=59,
                 ),
             ]

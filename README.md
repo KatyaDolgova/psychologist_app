@@ -123,7 +123,7 @@ Copy `.env.example` to `.env` and fill in:
 ## Auth Flow
 
 1. `POST /auth/login/` — send email, receive a one-time code
-2. `POST /auth/verify/?user_type=client|psychologist` — verify code, receive JWT token
+2. `POST /auth/verify/?user_type=client|specialist` — verify code, receive JWT token
 
 ## API
 

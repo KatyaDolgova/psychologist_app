@@ -30,9 +30,9 @@ import {
 	createManualSlot,
 	deleteSlot,
 	cancelSlot,
-	getPsyshologistProfile,
-	updatePsyshologistProfile,
-} from '../../api/psychologist';
+	getSpecialistProfile,
+	updateSpecialistProfile,
+} from '../../api/specialist';
 
 const DAY_ORDER = [
 	'MONDAY',
@@ -321,7 +321,7 @@ export default function WorkingHours() {
 		try {
 			const [data, profile] = await Promise.all([
 				getWorkingHours(token),
-				getPsyshologistProfile(token),
+				getSpecialistProfile(token),
 			]);
 			const days = fromRanges(data as TemplateRange[]);
 			setSchedule(days);
@@ -371,7 +371,7 @@ export default function WorkingHours() {
 			setSchedule(days);
 			setOriginal(days);
 			if (duration !== originalDuration) {
-				await updatePsyshologistProfile(token, {
+				await updateSpecialistProfile(token, {
 					session_duration_minutes: duration,
 				});
 				setOriginalDuration(duration);
@@ -560,7 +560,7 @@ export default function WorkingHours() {
 								htmlFor='session-duration'
 								className='text-sm text-gray-600 dark:text-gray-400'
 							>
-								Длительность сессии
+								Длительность занятия
 							</Label>
 							<select
 								id='session-duration'
@@ -789,7 +789,7 @@ export default function WorkingHours() {
 						Слоты для записи
 					</CardTitle>
 					<CardDescription className='dark:text-gray-400'>
-						Управление временными слотами для записи клиентов
+						Управление временными слотами для записи учеников
 					</CardDescription>
 				</CardHeader>
 				<CardContent className='space-y-6'>

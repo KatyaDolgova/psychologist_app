@@ -21,23 +21,23 @@ def _naive(dt: datetime) -> datetime:
 
 
 @pytest_asyncio.fixture
-async def psy_user(store):
-    """Создаёт тестового пользователя-психолога и возвращает его id."""
+async def specialist_user(store):
+    """Создаёт тестового пользователя-специалиста и возвращает его id."""
     user = await store.user.add(
         return_model=True,
-        email=f"psy-{uuid.uuid4()}@example.com",
-        roles=[UserRole.PSYCHOLOGIST.value],
+        email=f"specialist-{uuid.uuid4()}@example.com",
+        roles=[UserRole.SPECIALIST.value],
     )
     return user.id
 
 
-async def test_add_slot_returns_row(store, psy_user):
+async def test_add_slot_returns_row(store, specialist_user):
     starts = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
     ends = starts + timedelta(hours=1)
 
     slot = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=starts,
         ends_at=ends,
         status=SlotStatus.FREE,
@@ -49,18 +49,18 @@ async def test_add_slot_returns_row(store, psy_user):
     assert _naive(slot.starts_at) == _naive(starts)
 
 
-async def test_bulk_insert_ignore_conflicts_skips_duplicates(store, psy_user):
+async def test_bulk_insert_ignore_conflicts_skips_duplicates(store, specialist_user):
     starts = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
     rows = [
         {
-            "psychologist_id": psy_user,
+            "specialist_id": specialist_user,
             "starts_at": starts,
             "ends_at": starts + timedelta(hours=1),
             "status": SlotStatus.FREE,
             "source": SlotSource.TEMPLATE,
         },
         {
-            "psychologist_id": psy_user,
+            "specialist_id": specialist_user,
             "starts_at": starts,
             "ends_at": starts + timedelta(hours=1),
             "status": SlotStatus.FREE,
@@ -71,11 +71,11 @@ async def test_bulk_insert_ignore_conflicts_skips_duplicates(store, psy_user):
     assert created == 1
 
 
-async def test_list_in_range_filters_status_and_window(store, psy_user):
+async def test_list_in_range_filters_status_and_window(store, specialist_user):
     base = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
     # Free in range
     await store.availability_slot.add(
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=base,
         ends_at=base + timedelta(hours=1),
         status=SlotStatus.FREE,
@@ -83,7 +83,7 @@ async def test_list_in_range_filters_status_and_window(store, psy_user):
     )
     # Booked in range (must be excluded by status filter)
     await store.availability_slot.add(
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=base + timedelta(hours=2),
         ends_at=base + timedelta(hours=3),
         status=SlotStatus.BOOKED,
@@ -91,7 +91,7 @@ async def test_list_in_range_filters_status_and_window(store, psy_user):
     )
     # Free outside range (must be excluded by window)
     await store.availability_slot.add(
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=base + timedelta(days=30),
         ends_at=base + timedelta(days=30, hours=1),
         status=SlotStatus.FREE,
@@ -99,7 +99,7 @@ async def test_list_in_range_filters_status_and_window(store, psy_user):
     )
 
     found = await store.availability_slot.list_in_range(
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         from_dt=base - timedelta(hours=1),
         to_dt=base + timedelta(hours=4),
         status=SlotStatus.FREE,
@@ -108,10 +108,10 @@ async def test_list_in_range_filters_status_and_window(store, psy_user):
     assert _naive(found[0].starts_at) == _naive(base)
 
 
-async def test_unique_constraint_on_psy_starts(store, psy_user):
+async def test_unique_constraint_on_specialist_starts(store, specialist_user):
     starts = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
     await store.availability_slot.add(
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=starts,
         ends_at=starts + timedelta(hours=1),
         status=SlotStatus.FREE,
@@ -120,7 +120,7 @@ async def test_unique_constraint_on_psy_starts(store, psy_user):
     # @handle_db_errors wraps IntegrityError into HTTPException(409)
     with pytest.raises(HTTPException) as exc_info:
         await store.availability_slot.add(
-            psychologist_id=psy_user,
+            specialist_id=specialist_user,
             starts_at=starts,
             ends_at=starts + timedelta(hours=2),
             status=SlotStatus.FREE,
@@ -129,29 +129,29 @@ async def test_unique_constraint_on_psy_starts(store, psy_user):
     assert exc_info.value.status_code == 409
 
 
-async def test_try_book_returns_psy_id_on_success(store, psy_user):
+async def test_try_book_returns_specialist_id_on_success(store, specialist_user):
     starts = (datetime.now(timezone.utc) + timedelta(days=7)).replace(
         hour=9, minute=0, second=0, microsecond=0
     )
     slot = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=starts,
         ends_at=starts + timedelta(hours=1),
         status=SlotStatus.FREE,
         source=SlotSource.MANUAL,
     )
-    psy_id = await store.availability_slot.try_book(slot.id)
-    assert psy_id == psy_user
+    specialist_id = await store.availability_slot.try_book(slot.id)
+    assert specialist_id == specialist_user
 
 
-async def test_try_book_returns_none_when_started(store, psy_user):
+async def test_try_book_returns_none_when_started(store, specialist_user):
     starts = (datetime.now(timezone.utc) - timedelta(hours=1)).replace(
         second=0, microsecond=0
     )
     slot = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=starts,
         ends_at=starts + timedelta(hours=1),
         status=SlotStatus.FREE,
@@ -160,11 +160,11 @@ async def test_try_book_returns_none_when_started(store, psy_user):
     assert await store.availability_slot.try_book(slot.id) is None
 
 
-async def test_try_book_returns_none_when_not_free(store, psy_user):
+async def test_try_book_returns_none_when_not_free(store, specialist_user):
     starts = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
     slot = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=starts,
         ends_at=starts + timedelta(hours=1),
         status=SlotStatus.BOOKED,
@@ -177,11 +177,11 @@ async def test_try_book_returns_none_for_missing(store):
     assert await store.availability_slot.try_book(uuid.uuid4()) is None
 
 
-async def test_try_release_returns_true_when_booked(store, psy_user):
+async def test_try_release_returns_true_when_booked(store, specialist_user):
     starts = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
     slot = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=starts,
         ends_at=starts + timedelta(hours=1),
         status=SlotStatus.BOOKED,
@@ -190,11 +190,11 @@ async def test_try_release_returns_true_when_booked(store, psy_user):
     assert await store.availability_slot.try_release(slot.id) is True
 
 
-async def test_try_release_returns_false_when_not_booked(store, psy_user):
+async def test_try_release_returns_false_when_not_booked(store, specialist_user):
     starts = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
     slot = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=starts,
         ends_at=starts + timedelta(hours=1),
         status=SlotStatus.FREE,
@@ -203,30 +203,38 @@ async def test_try_release_returns_false_when_not_booked(store, psy_user):
     assert await store.availability_slot.try_release(slot.id) is False
 
 
-async def test_try_psy_cancel_checks_ownership_and_status(store, psy_user):
+async def test_try_specialist_cancel_checks_ownership_and_status(
+    store, specialist_user
+):
     starts = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
     slot = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=starts,
         ends_at=starts + timedelta(hours=1),
         status=SlotStatus.BOOKED,
         source=SlotSource.MANUAL,
     )
-    # Wrong psy
-    assert await store.availability_slot.try_psy_cancel(slot.id, 999999) is False
-    # Right psy
-    assert await store.availability_slot.try_psy_cancel(slot.id, psy_user) is True
+    # Wrong specialist
+    assert await store.availability_slot.try_specialist_cancel(slot.id, 999999) is False
+    # Right specialist
+    assert (
+        await store.availability_slot.try_specialist_cancel(slot.id, specialist_user)
+        is True
+    )
     # Already CANCELLED — second attempt fails
-    assert await store.availability_slot.try_psy_cancel(slot.id, psy_user) is False
+    assert (
+        await store.availability_slot.try_specialist_cancel(slot.id, specialist_user)
+        is False
+    )
 
 
-async def test_delete_stale_free_removes_only_old_free(store, psy_user):
+async def test_delete_stale_free_removes_only_old_free(store, specialist_user):
     now = datetime.now(timezone.utc)
     # Old FREE — should be deleted
     old_free = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=now - timedelta(days=30),
         ends_at=now - timedelta(days=30) + timedelta(hours=1),
         status=SlotStatus.FREE,
@@ -235,7 +243,7 @@ async def test_delete_stale_free_removes_only_old_free(store, psy_user):
     # Old BOOKED — must be kept
     old_booked = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=now - timedelta(days=20),
         ends_at=now - timedelta(days=20) + timedelta(hours=1),
         status=SlotStatus.BOOKED,
@@ -244,7 +252,7 @@ async def test_delete_stale_free_removes_only_old_free(store, psy_user):
     # Future FREE — must be kept
     future_free = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=now + timedelta(days=10),
         ends_at=now + timedelta(days=10, hours=1),
         status=SlotStatus.FREE,
@@ -265,36 +273,36 @@ async def test_delete_stale_free_removes_only_old_free(store, psy_user):
     assert await store.availability_slot.find_by_id(model_id=future_free_id)
 
 
-async def test_last_slot_date_returns_latest(store, psy_user):
+async def test_last_slot_date_returns_latest(store, specialist_user):
     base = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
     await store.availability_slot.add(
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=base,
         ends_at=base + timedelta(hours=1),
         status=SlotStatus.FREE,
         source=SlotSource.MANUAL,
     )
     await store.availability_slot.add(
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=base + timedelta(days=5),
         ends_at=base + timedelta(days=5, hours=1),
         status=SlotStatus.FREE,
         source=SlotSource.MANUAL,
     )
-    last = await store.availability_slot.last_slot_date(psychologist_id=psy_user)
+    last = await store.availability_slot.last_slot_date(specialist_id=specialist_user)
     assert _naive(last) == _naive(base + timedelta(days=5))
 
 
-async def test_last_slot_date_returns_none_for_empty(store, psy_user):
-    last = await store.availability_slot.last_slot_date(psychologist_id=psy_user)
+async def test_last_slot_date_returns_none_for_empty(store, specialist_user):
+    last = await store.availability_slot.last_slot_date(specialist_id=specialist_user)
     assert last is None
 
 
-async def test_set_status_updates_slot(store, psy_user):
+async def test_set_status_updates_slot(store, specialist_user):
     base = datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc)
     slot = await store.availability_slot.add(
         return_model=True,
-        psychologist_id=psy_user,
+        specialist_id=specialist_user,
         starts_at=base,
         ends_at=base + timedelta(hours=1),
         status=SlotStatus.FREE,

@@ -1,3 +1,4 @@
+import { SPECIALIST_ROLE } from '../../api/contract';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'react-router';
 import {
@@ -17,9 +18,9 @@ import {
 } from './ui/dialog';
 import { getChats, createDirectChat } from '../../api/chats';
 import {
-	getClientsForPsychologist,
-	getPsychologistsForClient,
-} from '../../api/psychologist';
+	getClientsForSpecialist,
+	getSpecialistsForClient,
+} from '../../api/specialist';
 import { useUser } from '../context/UserContext';
 
 interface Author {
@@ -100,7 +101,7 @@ function sortAsc(msgs: Message[]) {
 function NewChatDialog({ onCreated }: { onCreated: (chat: Chat) => void }) {
 	const { profile } = useUser();
 	const token = localStorage.getItem('token') ?? '';
-	const isPsychologist = profile?.role === 'PSYCHOLOGIST';
+	const isSpecialist = profile?.role === SPECIALIST_ROLE;
 
 	const [open, setOpen] = useState(false);
 	const [users, setUsers] = useState<any[]>([]);
@@ -111,9 +112,9 @@ function NewChatDialog({ onCreated }: { onCreated: (chat: Chat) => void }) {
 	const fetchUsers = async () => {
 		setLoadingUsers(true);
 		try {
-			const data = isPsychologist
-				? await getClientsForPsychologist(token)
-				: await getPsychologistsForClient(token);
+			const data = isSpecialist
+				? await getClientsForSpecialist(token)
+				: await getSpecialistsForClient(token);
 			setUsers(data ?? []);
 		} catch {
 		} finally {
@@ -192,7 +193,7 @@ function NewChatDialog({ onCreated }: { onCreated: (chat: Chat) => void }) {
 							<div className='space-y-1 max-h-72 overflow-y-auto'>
 								{(() => {
 									const filtered = users.filter((u) => {
-										const name = isPsychologist
+										const name = isSpecialist
 											? (u.name ?? '')
 											: `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
 										return name
@@ -206,10 +207,10 @@ function NewChatDialog({ onCreated }: { onCreated: (chat: Chat) => void }) {
 											</p>
 										);
 									return filtered.map((u) => {
-										const userId = isPsychologist
+										const userId = isSpecialist
 											? u.client_id
 											: u.id;
-										const name = isPsychologist
+										const name = isSpecialist
 											? u.name
 											: `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
 										const avatar = fixUrl(u.avatar ?? null);

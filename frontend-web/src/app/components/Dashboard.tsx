@@ -10,9 +10,9 @@ import {
 import { Link } from 'react-router';
 import { Button } from './ui/button';
 import {
-	getPsyshologistAppointments,
-	getClientsForPsychologist,
-} from '../../api/psychologist';
+	getSpecialistAppointments,
+	getClientsForSpecialist,
+} from '../../api/specialist';
 
 const isToday = (iso: string) => {
 	const d = new Date(iso);
@@ -78,9 +78,9 @@ export default function Dashboard() {
 		(async () => {
 			try {
 				const [upcomingAppts, completedAppts, cls] = await Promise.all([
-					getPsyshologistAppointments(token, true),
-					getPsyshologistAppointments(token, false),
-					getClientsForPsychologist(token),
+					getSpecialistAppointments(token, true),
+					getSpecialistAppointments(token, false),
+					getClientsForSpecialist(token),
 				]);
 				setAppointments([
 					...(upcomingAppts ?? []),
@@ -109,7 +109,7 @@ export default function Dashboard() {
 
 	const statCards = [
 		{
-			title: 'Сессий сегодня',
+			title: 'Занятий сегодня',
 			value: String(todaySessions.length),
 			icon: Clock,
 			footer: 'в расписании на сегодня',
@@ -119,18 +119,18 @@ export default function Dashboard() {
 			title: 'В этом месяце',
 			value: String(monthCount),
 			icon: Calendar,
-			footer: 'сессий в текущем месяце',
+			footer: 'занятий в текущем месяце',
 			color: 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400',
 		},
 		{
-			title: 'Всего сессий',
+			title: 'Всего занятий',
 			value: String(totalCount),
 			icon: TrendingUp,
 			footer: 'за всё время',
 			color: 'bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400',
 		},
 		{
-			title: 'Клиентов',
+			title: 'Учеников',
 			value: String(clientCount),
 			icon: Users,
 			footer: 'всего в базе',
@@ -192,7 +192,7 @@ export default function Dashboard() {
 				<Card className='dark:bg-gray-800 dark:border-gray-700'>
 					<CardHeader>
 						<CardTitle className='dark:text-white'>
-							Сессии сегодня
+							Занятия сегодня
 						</CardTitle>
 						<CardDescription className='dark:text-gray-400 capitalize'>
 							{todayLabel()}
@@ -229,7 +229,7 @@ export default function Dashboard() {
 														{client?.name || '—'}
 													</p>
 													<p className='text-sm text-gray-500 dark:text-gray-400'>
-														Клиент
+														Ученик
 													</p>
 												</div>
 											</div>
@@ -251,7 +251,7 @@ export default function Dashboard() {
 								})
 							) : (
 								<p className='text-gray-500 dark:text-gray-400 text-center py-8'>
-									Нет запланированных сессий
+									Нет запланированных занятий
 								</p>
 							)}
 						</div>
@@ -261,10 +261,10 @@ export default function Dashboard() {
 				<Card className='dark:bg-gray-800 dark:border-gray-700'>
 					<CardHeader>
 						<CardTitle className='dark:text-white'>
-							Недавние клиенты
+							Недавние ученики
 						</CardTitle>
 						<CardDescription className='dark:text-gray-400'>
-							Последние активные клиенты
+							Последние активные ученики
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -294,13 +294,13 @@ export default function Dashboard() {
 												<p className='text-sm text-gray-500 dark:text-gray-400'>
 													{c.total_sessions}{' '}
 													{c.total_sessions === 1
-														? 'сессия'
+														? 'занятие'
 														: c.total_sessions >=
 																	2 &&
 															  c.total_sessions <=
 																	4
-															? 'сессии'
-															: 'сессий'}
+															? 'занятия'
+															: 'занятий'}
 												</p>
 											</div>
 										</div>
@@ -317,7 +317,7 @@ export default function Dashboard() {
 								))
 							) : (
 								<p className='text-gray-500 dark:text-gray-400 text-center py-8'>
-									Нет клиентов
+									Нет учеников
 								</p>
 							)}
 						</div>
