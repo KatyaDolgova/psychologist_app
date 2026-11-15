@@ -10,7 +10,9 @@ from src.core.exceptions import (
     AudioFileMissingError,
     AudioFileTooLargeError,
     LessonNotFoundError,
+    LessonOwnerOnlyError,
     NotFoundException,
+    NotLessonContactError,
     TranscriptionInProgressError,
     UnsupportedAudioFormatError,
     ValidationException,
@@ -18,7 +20,13 @@ from src.core.exceptions import (
 from src.crud import Store
 from src.models import Lesson
 from src.models.enums.transcripts import TranscriptionModel, TranscriptStatus
-from src.schemas.lessons import LessonSchema, ModelOptionSchema, TranscriptSchema
+from src.schemas.lessons import (
+    ContactSchema,
+    LessonSchema,
+    ModelOptionSchema,
+    ParticipantSchema,
+    TranscriptSchema,
+)
 from src.services.transcription.catalog import default_model, get_options
 from src.tasks.transcribe_lesson import transcribe_lesson_task
 
@@ -29,7 +37,9 @@ UPLOAD_CHUNK_BYTES = 1024 * 1024
 class LessonService:
     """Уроки: загрузка записи, запуск транскрибации, чтение результата.
 
-    Уроки и транскрипты видит только автор урока.
+    Урок видят автор и участники, с которыми он поделился; менять урок и видеть
+    служебные данные (ошибка, повтор, участники) может только автор.
+    Правила: docs/TRANSCRIPTION.md, раздел 11.
     """
 
     def __init__(
@@ -133,40 +143,118 @@ class LessonService:
         return self._to_schema(lesson, TranscriptStatus.PENDING)
 
     async def list_lessons(
-        self, teacher_id: int, limit: int, offset: int
+        self, user_id: int, limit: int, offset: int, shared: bool = False
     ) -> list[LessonSchema]:
-        rows = await self._store.lesson.find_by_teacher(
-            teacher_id=teacher_id, limit=limit, offset=offset
-        )
-        return [self._to_schema(lesson, status) for lesson, status in rows]
+        """Свои уроки или, при shared=True, уроки, которыми поделились с пользователем."""
+        if shared:
+            rows = await self._store.lesson.find_shared_with(
+                user_id=user_id, limit=limit, offset=offset
+            )
+        else:
+            rows = await self._store.lesson.find_by_teacher(
+                teacher_id=user_id, limit=limit, offset=offset
+            )
+        return [
+            self._to_schema(lesson, status, is_owner=not shared)
+            for lesson, status in rows
+        ]
 
-    async def get_lesson(self, teacher_id: int, lesson_id: UUID) -> LessonSchema:
-        lesson = await self._get_owned_lesson(teacher_id, lesson_id)
+    async def get_lesson(self, user_id: int, lesson_id: UUID) -> LessonSchema:
+        lesson, is_owner = await self._get_visible_lesson(user_id, lesson_id)
         transcript = await self._store.lesson_transcript.find_one_or_none(
             lesson_id=lesson_id
         )
-        return self._to_schema(lesson, transcript.status if transcript else None)
+        return self._to_schema(
+            lesson, transcript.status if transcript else None, is_owner=is_owner
+        )
 
-    async def get_transcript(
-        self, teacher_id: int, lesson_id: UUID
-    ) -> TranscriptSchema:
-        await self._get_owned_lesson(teacher_id, lesson_id)
+    async def get_transcript(self, user_id: int, lesson_id: UUID) -> TranscriptSchema:
+        _, is_owner = await self._get_visible_lesson(user_id, lesson_id)
         transcript = await self._store.lesson_transcript.find_one_or_none(
             lesson_id=lesson_id
         )
         if transcript is None:
             raise NotFoundException("Транскрипт урока не найден")
-        return TranscriptSchema.model_validate(transcript)
+        result = TranscriptSchema.model_validate(transcript)
+        if is_owner:
+            return result
+        # Участник видит только готовый текст, без ошибок и промежуточных статусов.
+        if result.status != TranscriptStatus.DONE:
+            return result.model_copy(
+                update={
+                    "status": TranscriptStatus.PENDING,
+                    "language": None,
+                    "segments": [],
+                    "error": None,
+                    "note": None,
+                }
+            )
+        return result.model_copy(update={"error": None})
+
+    async def list_contacts(self, user_id: int) -> list[ContactSchema]:
+        """С кем пользователь может поделиться уроком."""
+        rows = await self._store.lesson_participant.find_contacts(user_id=user_id)
+        return [ContactSchema(**row) for row in rows]
+
+    async def list_participants(
+        self, owner_id: int, lesson_id: UUID
+    ) -> list[ParticipantSchema]:
+        await self._get_owned_lesson(owner_id, lesson_id)
+        rows = await self._store.lesson_participant.find_for_lesson(lesson_id=lesson_id)
+        return [ParticipantSchema(**row) for row in rows]
+
+    async def add_participant(
+        self, owner_id: int, lesson_id: UUID, user_id: int
+    ) -> list[ParticipantSchema]:
+        """Делится уроком; повторное добавление того же участника ничего не меняет."""
+        await self._get_owned_lesson(owner_id, lesson_id)
+        if user_id == owner_id:
+            raise ValidationException("Нельзя поделиться записью с самим собой")
+        if not await self._store.lesson_participant.is_contact(owner_id, user_id):
+            raise NotLessonContactError
+        if not await self._store.lesson_participant.is_participant(lesson_id, user_id):
+            await self._store.lesson_participant.add(
+                return_model=False, lesson_id=lesson_id, user_id=user_id
+            )
+        return await self.list_participants(owner_id, lesson_id)
+
+    async def remove_participant(
+        self, requester_id: int, lesson_id: UUID, user_id: int
+    ) -> None:
+        """Автор убирает любого участника, участник может убрать только себя."""
+        lesson, is_owner = await self._get_visible_lesson(requester_id, lesson_id)
+        if not is_owner and requester_id != user_id:
+            raise LessonOwnerOnlyError
+        await self._store.lesson_participant.remove(
+            lesson_id=lesson.id, user_id=user_id
+        )
+
+    async def _get_visible_lesson(
+        self, user_id: int, lesson_id: UUID
+    ) -> tuple[Lesson, bool]:
+        """Урок для автора или участника; второе значение - является ли он автором."""
+        lesson = await self._store.lesson.find_by_id(model_id=lesson_id)
+        if lesson is not None:
+            if lesson.teacher_id == user_id:
+                return lesson, True
+            if await self._store.lesson_participant.is_participant(lesson_id, user_id):
+                return lesson, False
+        # Чужой урок отдаём как несуществующий, чтобы не раскрывать его наличие.
+        raise LessonNotFoundError
 
     async def _get_owned_lesson(self, teacher_id: int, lesson_id: UUID) -> Lesson:
-        lesson = await self._store.lesson.find_by_id(model_id=lesson_id)
-        # Чужой урок отдаём как несуществующий, чтобы не раскрывать его наличие.
-        if lesson is None or lesson.teacher_id != teacher_id:
-            raise LessonNotFoundError
+        lesson, is_owner = await self._get_visible_lesson(teacher_id, lesson_id)
+        if not is_owner:
+            raise LessonOwnerOnlyError
         return lesson
 
     @staticmethod
-    def _to_schema(lesson: Lesson, status: TranscriptStatus | None) -> LessonSchema:
+    def _to_schema(
+        lesson: Lesson, status: TranscriptStatus | None, is_owner: bool = True
+    ) -> LessonSchema:
+        # Участнику не показываем ход распознавания и сбои: только готово или ещё нет.
+        if not is_owner and status is not None and status != TranscriptStatus.DONE:
+            status = TranscriptStatus.PENDING
         return LessonSchema(
             id=lesson.id,
             title=lesson.title,
@@ -174,6 +262,7 @@ class LessonService:
             transcription_model=lesson.transcription_model,
             created_at=lesson.created_at,
             transcript_status=status,
+            is_owner=is_owner,
         )
 
     @staticmethod

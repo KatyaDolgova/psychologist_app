@@ -246,6 +246,20 @@ class TranscriptionInProgressError(BaseError):
     detail = "Транскрибация уже выполняется"
 
 
+class LessonOwnerOnlyError(BaseError):
+    """Действие с уроком доступно только автору, а запрос пришёл от участника."""
+
+    status_code = status.HTTP_403_FORBIDDEN
+    detail = "Это действие доступно только автору записи"
+
+
+class NotLessonContactError(BaseError):
+    """Попытка поделиться уроком с тем, с кем у автора не было занятий."""
+
+    status_code = status.HTTP_403_FORBIDDEN
+    detail = "Поделиться записью можно только с тем, с кем у вас было занятие"
+
+
 class AudioFileMissingError(BaseError):
     """Файла записи нет на диске, пересчитывать нечего."""
 
