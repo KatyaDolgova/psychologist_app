@@ -12,6 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Profile from './components/Profile';
 import Specialists from './components/Specialists';
 import Favorites from './components/Favorites';
+import Lessons from './components/Lessons';
 import { SpecialistRoute, ClientRoute } from './components/RoleRoute';
 import RouteError from './components/RouteError';
 
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
 							{ path: 'clients', Component: Clients },
 							{ path: 'clients/:id', Component: ClientDetails },
 							{ path: 'working-hours', Component: WorkingHours },
+							{ path: 'lessons', Component: Lessons },
 						],
 					},
 					{

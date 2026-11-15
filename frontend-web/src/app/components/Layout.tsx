@@ -12,6 +12,7 @@ import {
 	Moon,
 	Sun,
 	Heart,
+	FileAudio,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -32,6 +33,7 @@ const NAV_ITEMS_SPECIALIST: NavItem[] = [
 	{ to: '/sessions', icon: Calendar, label: 'Расписание' },
 	{ to: '/chats', icon: MessageSquare, label: 'Сообщения' },
 	{ to: '/working-hours', icon: Clock, label: 'Рабочие часы' },
+	{ to: '/lessons', icon: FileAudio, label: 'Записи уроков' },
 ];
 
 const NAV_ITEMS_CLIENT: NavItem[] = [

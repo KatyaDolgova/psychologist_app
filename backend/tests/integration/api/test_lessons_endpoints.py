@@ -154,6 +154,47 @@ def test_other_users_lesson_is_hidden(authed_specialist, specialist_id):
     assert authed_specialist.get(f"/lessons/{lesson_id}/transcript").status_code == 404
 
 
+def test_list_returns_own_lessons_with_status(authed_specialist):
+    first = _upload(authed_specialist, title="Урок A").json()["id"]
+    second = _upload(authed_specialist, title="Урок B").json()["id"]
+
+    resp = authed_specialist.get("/lessons/")
+
+    assert resp.status_code == 200
+    by_id = {lesson["id"]: lesson for lesson in resp.json()}
+    assert set(by_id) == {first, second}
+    assert by_id[first]["title"] == "Урок A"
+    assert by_id[first]["transcript_status"] == "PENDING"
+
+
+def test_list_hides_other_users_lessons(authed_specialist, specialist_id):
+    lesson_id = _upload(authed_specialist).json()["id"]
+
+    app.dependency_overrides[get_any_user_id] = lambda: specialist_id + 1000
+
+    ids = [lesson["id"] for lesson in authed_specialist.get("/lessons/").json()]
+    assert lesson_id not in ids
+
+
+def test_list_is_paginated(authed_specialist):
+    for n in range(3):
+        _upload(authed_specialist, title=f"Урок {n}")
+
+    first_page = authed_specialist.get("/lessons/?limit=2").json()
+    second_page = authed_specialist.get("/lessons/?limit=2&offset=2").json()
+
+    assert len(first_page) == 2
+    assert len(second_page) == 1
+    assert not {lesson["id"] for lesson in first_page} & {
+        lesson["id"] for lesson in second_page
+    }
+
+
+@pytest.mark.parametrize("query", ["limit=0", "limit=101", "offset=-1"])
+def test_list_rejects_bad_pagination(authed_specialist, query):
+    assert authed_specialist.get(f"/lessons/?{query}").status_code == 422
+
+
 def test_retry_requeues_the_transcription(authed_specialist, isolated_uploads):
     lesson_id = _upload(authed_specialist).json()["id"]
     assert len(isolated_uploads) == 1
