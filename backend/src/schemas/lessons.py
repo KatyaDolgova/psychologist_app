@@ -26,6 +26,25 @@ class LessonSchema(BaseModel):
     transcription_model: TranscriptionModel
     created_at: datetime
     transcript_status: TranscriptStatus | None = None
+    # False, если урок прислан пользователю: тогда это участник, а не автор.
+    is_owner: bool = True
+
+
+class ParticipantSchema(BaseModel):
+    user_id: int
+    name: str | None = None
+
+
+class ContactSchema(BaseModel):
+    """Тот, с кем можно поделиться уроком."""
+
+    user_id: int
+    name: str | None = None
+    last_appointment_at: datetime
+
+
+class AddParticipantRequest(BaseModel):
+    user_id: int
 
 
 class SegmentSchema(BaseModel):

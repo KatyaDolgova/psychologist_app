@@ -11,6 +11,7 @@ from src.crud.impl import (
     ClientNoteDAO,
     FavoritesDAO,
     LessonDAO,
+    LessonParticipantDAO,
     LessonTranscriptDAO,
     PaymentMethodDAO,
     SpecialistDAO,
@@ -61,6 +62,7 @@ class Store:
         self._availability_slot_dao: AvailabilitySlotsDAO | None = None
         self._lesson_dao: LessonDAO | None = None
         self._lesson_transcript_dao: LessonTranscriptDAO | None = None
+        self._lesson_participant_dao: LessonParticipantDAO | None = None
 
     @property
     def session(self) -> AsyncSession:
@@ -222,3 +224,10 @@ class Store:
         if self._lesson_transcript_dao is None:
             self._lesson_transcript_dao = LessonTranscriptDAO(session=self._session)
         return self._lesson_transcript_dao
+
+    @property
+    def lesson_participant(self) -> LessonParticipantDAO:
+        """Возвращает интерфейс для работы с участниками уроков."""
+        if self._lesson_participant_dao is None:
+            self._lesson_participant_dao = LessonParticipantDAO(session=self._session)
+        return self._lesson_participant_dao

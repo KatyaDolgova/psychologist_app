@@ -7,6 +7,7 @@ from src.crud.impl.client import ClientDAO
 from src.crud.impl.client_note import ClientNoteDAO
 from src.crud.impl.favorites import FavoritesDAO
 from src.crud.impl.lesson import LessonDAO
+from src.crud.impl.lesson_participant import LessonParticipantDAO
 from src.crud.impl.lesson_transcript import LessonTranscriptDAO
 from src.crud.impl.payment_method import PaymentMethodDAO
 from src.crud.impl.specialist import SpecialistDAO
@@ -28,5 +29,6 @@ __all__ = [
     "WorkingHoursDAO",
     "AvailabilitySlotsDAO",
     "LessonDAO",
+    "LessonParticipantDAO",
     "LessonTranscriptDAO",
 ]

@@ -15,6 +15,7 @@ from src.models.enums import (
 )
 from src.models.favorites import UserFavorite
 from src.models.lesson import Lesson
+from src.models.lesson_participant import LessonParticipant
 from src.models.lesson_transcript import LessonTranscript
 from src.models.payment_method import PaymentMethod
 from src.models.specialist import SpecialistProfile
@@ -45,6 +46,7 @@ __all__ = [
     "SlotStatus",
     "SlotSource",
     "Lesson",
+    "LessonParticipant",
     "LessonTranscript",
     "TranscriptStatus",
 ]
