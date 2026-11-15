@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
 			port: 5173,
 			allowedHosts: true,
 			proxy: {
-				'^/(auth|user|chats|calls|admin|specialists)/.*': {
+				'^/(auth|user|chats|calls|admin|specialists|lessons)/.*': {
 					target: backendProxyUrl,
 					changeOrigin: true,
 				},

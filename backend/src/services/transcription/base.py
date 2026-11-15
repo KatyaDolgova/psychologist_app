@@ -34,5 +34,5 @@ class Transcriber(Protocol):
         language: str | None = None,
         prompt: str | None = None,
     ) -> TranscriptionResult:
-        """prompt — тема или ключевые слова: помогает писать термины верно."""
+        """prompt - тема или ключевые слова: помогает писать термины верно."""
         ...

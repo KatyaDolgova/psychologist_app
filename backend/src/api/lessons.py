@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 
 from src.core.dependencies import get_any_user_id
 from src.models.enums.transcripts import TranscriptionModel
@@ -28,6 +28,20 @@ async def get_model_options(
     return service.get_model_options()
 
 
+@router.get(
+    "/",
+    summary="Мои уроки",
+    description="Уроки текущего пользователя со статусом транскрибации, новые сверху.",
+)
+async def list_lessons(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    user_id: int = Depends(get_any_user_id),
+    service: LessonService = Depends(),
+) -> list[LessonSchema]:
+    return await service.list_lessons(teacher_id=user_id, limit=limit, offset=offset)
+
+
 @router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
@@ -48,7 +62,7 @@ async def create_lesson(
         None,
         description=(
             "Вариант транскрибации: fast (быстро) или quality (точнее). "
-            "Список — GET /lessons/models. Если не указан, берётся вариант по умолчанию."
+            "Список - GET /lessons/models. Если не указан, берётся вариант по умолчанию."
         ),
     ),
     file: UploadFile = File(...),

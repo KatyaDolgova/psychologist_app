@@ -132,6 +132,14 @@ class LessonService:
         lesson = await self._store.lesson.find_by_id(model_id=lesson_id)
         return self._to_schema(lesson, TranscriptStatus.PENDING)
 
+    async def list_lessons(
+        self, teacher_id: int, limit: int, offset: int
+    ) -> list[LessonSchema]:
+        rows = await self._store.lesson.find_by_teacher(
+            teacher_id=teacher_id, limit=limit, offset=offset
+        )
+        return [self._to_schema(lesson, status) for lesson, status in rows]
+
     async def get_lesson(self, teacher_id: int, lesson_id: UUID) -> LessonSchema:
         lesson = await self._get_owned_lesson(teacher_id, lesson_id)
         transcript = await self._store.lesson_transcript.find_one_or_none(
