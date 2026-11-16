@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     # Аудио уроков хранится вне /static: статика раздаётся публично.
     LESSON_AUDIO_DIR: str = "media/lessons"
     MAX_LESSON_UPLOAD_MB: int = 500
+    # Сумма размеров загрузок одного пользователя за последние 24 часа: воркер
+    # распознаёт по одной записи, и большие загрузки одного задерживают остальных.
+    LESSON_DAILY_UPLOAD_MB: int = 1000
 
     class Config:
         env_file = ".env"

@@ -239,6 +239,13 @@ class AudioFileTooLargeError(BaseError):
     detail = "Файл слишком большой"
 
 
+class DailyUploadLimitError(BaseError):
+    """Пользователь исчерпал суточный лимит загрузки записей."""
+
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    detail = "Суточный лимит загрузки записей исчерпан"
+
+
 class TranscriptionInProgressError(BaseError):
     """Повторный запуск, пока транскрибация ещё выполняется."""
 

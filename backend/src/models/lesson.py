@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from sqlalchemy import Enum, ForeignKey, String, Text
+from sqlalchemy import BigInteger, Enum, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.models.base import BaseWithTimestamps
@@ -29,3 +29,5 @@ class Lesson(BaseWithTimestamps):
         Enum(TranscriptionModel), default=TranscriptionModel.FAST
     )
     audio_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Размер загруженного файла: по нему считается суточный лимит загрузки.
+    audio_size_bytes: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)

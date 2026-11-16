@@ -1,4 +1,6 @@
 import asyncio
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -9,6 +11,7 @@ from src.core.dependencies import get_store
 from src.core.exceptions import (
     AudioFileMissingError,
     AudioFileTooLargeError,
+    DailyUploadLimitError,
     LessonNotFoundError,
     LessonOwnerOnlyError,
     NotFoundException,
@@ -75,7 +78,10 @@ class LessonService:
             raise UnsupportedAudioFormatError
 
         lesson_id = uuid4()
-        audio_path = await self._save_audio(file, lesson_id, extension)
+        daily_left = await self._daily_upload_left(teacher_id)
+        audio_path, size = await self._save_audio(
+            file, lesson_id, extension, daily_left
+        )
         try:
             await self._store.lesson.add(
                 return_model=False,
@@ -85,6 +91,7 @@ class LessonService:
                 topic=(topic or "").strip() or None,
                 transcription_model=model or default_model(),
                 audio_path=str(audio_path),
+                audio_size_bytes=size,
             )
             transcript = await self._store.lesson_transcript.add(
                 lesson_id=lesson_id, status=TranscriptStatus.PENDING
@@ -265,25 +272,70 @@ class LessonService:
             is_owner=is_owner,
         )
 
+    async def _daily_upload_left(self, teacher_id: int) -> "DailyQuota":
+        """Сколько байт пользователь ещё может загрузить за текущие сутки."""
+        limit = settings.LESSON_DAILY_UPLOAD_MB * 1024 * 1024
+        now = datetime.now(timezone.utc)
+        used, oldest = await self._store.lesson.uploaded_since(
+            teacher_id=teacher_id, since=now - DAILY_WINDOW
+        )
+        quota = DailyQuota(left=limit - used, oldest_upload=oldest, now=now)
+        if quota.left <= 0:
+            raise quota.error()
+        return quota
+
     @staticmethod
-    async def _save_audio(file: UploadFile, lesson_id: UUID, extension: str) -> Path:
-        """Пишет загрузку на диск кусками, не читая весь файл в память."""
+    async def _save_audio(
+        file: UploadFile, lesson_id: UUID, extension: str, daily: "DailyQuota"
+    ) -> tuple[Path, int]:
+        """Пишет загрузку на диск кусками, не читая весь файл в память.
+
+        Возвращает путь и размер файла. Останавливается, как только файл превысил
+        предел на одну загрузку или остаток суточного лимита.
+        """
         directory = Path(settings.LESSON_AUDIO_DIR)
         directory.mkdir(parents=True, exist_ok=True)
         path = directory / f"{lesson_id}{extension}"
-        limit = settings.MAX_LESSON_UPLOAD_MB * 1024 * 1024
+        file_limit = settings.MAX_LESSON_UPLOAD_MB * 1024 * 1024
 
         written = 0
         try:
             with path.open("wb") as out:
                 while chunk := await file.read(UPLOAD_CHUNK_BYTES):
                     written += len(chunk)
-                    if written > limit:
+                    if written > file_limit:
                         raise AudioFileTooLargeError
+                    if written > daily.left:
+                        raise daily.error()
                     await asyncio.to_thread(out.write, chunk)
             if written == 0:
                 raise ValidationException("Файл пустой")
         except BaseException:
             path.unlink(missing_ok=True)
             raise
-        return path
+        return path, written
+
+
+DAILY_WINDOW = timedelta(hours=24)
+
+
+@dataclass(frozen=True)
+class DailyQuota:
+    """Остаток суточного лимита загрузки и данные для понятного отказа."""
+
+    left: int
+    oldest_upload: datetime | None
+    now: datetime
+
+    def error(self) -> DailyUploadLimitError:
+        limit_mb = settings.LESSON_DAILY_UPLOAD_MB
+        message = f"Суточный лимит загрузки ({limit_mb} МБ за 24 часа) исчерпан."
+        if self.oldest_upload is not None:
+            oldest = self.oldest_upload
+            # SQLite отдаёт время без пояса; в базе оно хранится в UTC.
+            if oldest.tzinfo is None:
+                oldest = oldest.replace(tzinfo=timezone.utc)
+            wait = max(oldest + DAILY_WINDOW - self.now, timedelta(minutes=1))
+            hours, minutes = divmod(int(wait.total_seconds()) // 60, 60)
+            message += f" Лимит начнёт освобождаться через {hours} ч {minutes} мин."
+        return DailyUploadLimitError(message)
