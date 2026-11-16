@@ -1,4 +1,6 @@
-from sqlalchemy import select
+from datetime import datetime
+
+from sqlalchemy import func, select
 
 from src.core.wrapper import handle_db_errors
 from src.crud.impl.base import BaseDAO
@@ -25,6 +27,18 @@ class LessonDAO(BaseDAO):
         )
         result = await self.session.execute(query)
         return result.all()
+
+    @handle_db_errors
+    async def uploaded_since(
+        self, teacher_id: int, since: datetime
+    ) -> tuple[int, datetime | None]:
+        """Сколько байт автор загрузил начиная с since и когда была самая ранняя загрузка."""
+        query = select(
+            func.coalesce(func.sum(Lesson.audio_size_bytes), 0),
+            func.min(Lesson.created_at),
+        ).where(Lesson.teacher_id == teacher_id, Lesson.created_at >= since)
+        total, oldest = (await self.session.execute(query)).one()
+        return int(total), oldest
 
     @handle_db_errors
     async def find_shared_with(self, user_id: int, limit: int, offset: int):
