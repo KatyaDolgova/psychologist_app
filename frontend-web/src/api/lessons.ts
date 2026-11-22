@@ -16,6 +16,22 @@ export type Lesson = {
 	transcription_model: TranscriptionModel;
 	created_at: string;
 	transcript_status: TranscriptStatus | null;
+	// false у урока, которым с пользователем поделились: он участник, а не автор.
+	is_owner: boolean;
+};
+
+export type LessonScope = 'own' | 'shared';
+
+// Тот, с кем можно поделиться уроком (было неотменённое занятие).
+export type Contact = {
+	user_id: number;
+	name: string | null;
+	last_appointment_at: string;
+};
+
+export type Participant = {
+	user_id: number;
+	name: string | null;
 };
 
 export type Transcript = {
@@ -64,8 +80,9 @@ export const listLessons = async (
 	token: string,
 	limit: number,
 	offset: number,
+	scope: LessonScope = 'own',
 ): Promise<Lesson[]> => {
-	const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+	const params = new URLSearchParams({ scope, limit: String(limit), offset: String(offset) });
 	const res = await apiFetch(`/lessons/?${params}`, { headers: authHeaders(token) });
 	if (!res.ok) throw new Error(await readError(res));
 	return res.json();
@@ -97,6 +114,51 @@ export const retryLesson = async (
 	});
 	if (!res.ok) throw new Error(await readError(res));
 	return res.json();
+};
+
+export const listContacts = async (token: string): Promise<Contact[]> => {
+	const res = await apiFetch('/lessons/contacts', { headers: authHeaders(token) });
+	if (!res.ok) throw new Error(await readError(res));
+	return res.json();
+};
+
+export const listParticipants = async (
+	token: string,
+	lessonId: string,
+): Promise<Participant[]> => {
+	const res = await apiFetch(`/lessons/${lessonId}/participants`, {
+		headers: authHeaders(token),
+	});
+	if (!res.ok) throw new Error(await readError(res));
+	return res.json();
+};
+
+// Возвращает обновлённый список участников.
+export const addParticipant = async (
+	token: string,
+	lessonId: string,
+	userId: number,
+): Promise<Participant[]> => {
+	const res = await apiFetch(`/lessons/${lessonId}/participants`, {
+		method: 'POST',
+		headers: authHeaders(token),
+		body: JSON.stringify({ user_id: userId }),
+	});
+	if (!res.ok) throw new Error(await readError(res));
+	return res.json();
+};
+
+// Автор убирает любого участника, участник может убрать только себя.
+export const removeParticipant = async (
+	token: string,
+	lessonId: string,
+	userId: number,
+): Promise<void> => {
+	const res = await apiFetch(`/lessons/${lessonId}/participants/${userId}`, {
+		method: 'DELETE',
+		headers: authHeaders(token),
+	});
+	if (!res.ok) throw new Error(await readError(res));
 };
 
 export type UploadLessonForm = {
