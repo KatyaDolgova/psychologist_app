@@ -23,6 +23,7 @@ import { Label } from './ui/label';
 import { getVerifyCode, checkVerifyCode } from '../../api/auth';
 import { getUser, sendUserData } from '../../api/profile';
 import { birthDateMax, birthDateMin, validateBirthDate } from '../birthDate';
+import { BrandMark, BrandName, BRAND_TAGLINE } from './Brand';
 import {
 	getSpecialistProfile,
 	updateSpecialistProfile,
@@ -263,7 +264,17 @@ export default function Auth() {
 	};
 
 	return (
-		<div className='flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4'>
+		<div className='flex flex-col items-center justify-center gap-6 min-h-screen bg-gray-50 dark:bg-gray-900 p-4'>
+			<div className='flex flex-col items-center gap-2 text-center'>
+				<div className='flex items-center gap-3'>
+					<BrandMark className='w-11 h-11' />
+					<BrandName className='text-3xl font-bold text-gray-900 dark:text-white' />
+				</div>
+				<p className='text-gray-600 dark:text-gray-300'>{BRAND_TAGLINE}</p>
+				<p className='text-sm text-gray-500 dark:text-gray-400'>
+					Meetor - от Meet и Mentor: встреча с наставником
+				</p>
+			</div>
 			<Card className='w-full max-w-md dark:bg-gray-800 dark:border-gray-700'>
 				<CardHeader className='text-center'>
 					<CardTitle className='text-2xl font-bold text-gray-900 dark:text-white'>
