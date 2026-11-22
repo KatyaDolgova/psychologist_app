@@ -19,6 +19,7 @@ import { Button } from './ui/button';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import { UserProvider, useUser } from '../context/UserContext';
+import { BrandMark, BrandName, BRAND_TAGLINE } from './Brand';
 
 type NavItem = {
 	to: string;
@@ -119,13 +120,16 @@ function LayoutInner() {
 	return (
 		<div className='flex h-screen bg-gray-50 dark:bg-gray-900'>
 			<aside className='w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col'>
-				<div className='p-6 border-b border-gray-200 dark:border-gray-700'>
-					<h1 className='text-xl font-semibold text-gray-900 dark:text-white'>
-						Онлайн-уроки
-					</h1>
-					<h5 className='text-sm text-gray-500 dark:text-white mt-1'>
-						Рабочее пространство
-					</h5>
+				<div className='p-6 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3'>
+					<BrandMark />
+					<div className='min-w-0'>
+						<h1 className='text-xl font-semibold text-gray-900 dark:text-white leading-tight'>
+							<BrandName />
+						</h1>
+						<p className='text-sm text-gray-500 dark:text-gray-400 mt-0.5'>
+							{BRAND_TAGLINE}
+						</p>
+					</div>
 				</div>
 
 				<nav className='flex-1 p-4 space-y-1'>
