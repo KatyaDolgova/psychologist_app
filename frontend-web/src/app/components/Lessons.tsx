@@ -1,16 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import {
 	ArrowLeft,
 	Check,
 	CheckCircle2,
+	ChevronDown,
+	ChevronUp,
 	Clock,
 	Copy,
 	FileAudio,
 	Loader2,
 	RotateCcw,
+	Search,
 	TriangleAlert,
 	Upload,
+	X,
 	XCircle,
 } from 'lucide-react';
 import {
@@ -584,15 +588,75 @@ export default function Lessons() {
 	);
 }
 
+// Для поиска: без регистра и без различия «е» и «ё» (длина строки при этом не меняется).
+const normalizeForSearch = (text: string) => text.toLowerCase().replace(/ё/g, 'е');
+
+function Highlighted({ text, needle }: { text: string; needle: string }) {
+	if (!needle) return <>{text}</>;
+	const normalized = normalizeForSearch(text);
+	// Подсветка опирается на совпадающие позиции в двух строках.
+	if (normalized.length !== text.length) return <>{text}</>;
+	const parts: React.ReactNode[] = [];
+	let from = 0;
+	for (let at = normalized.indexOf(needle); at !== -1; at = normalized.indexOf(needle, from)) {
+		if (at > from) parts.push(text.slice(from, at));
+		parts.push(
+			<mark
+				key={at}
+				className='bg-yellow-200 text-gray-900 dark:bg-yellow-500/40 dark:text-white rounded-sm'
+			>
+				{text.slice(at, at + needle.length)}
+			</mark>,
+		);
+		from = at + needle.length;
+	}
+	if (from < text.length) parts.push(text.slice(from));
+	return <>{parts}</>;
+}
+
 function TranscriptView({ transcript }: { transcript: Transcript }) {
-	const [copied, setCopied] = useState<'ok' | 'error' | null>(null);
+	const [copied, setCopied] = useState<'plain' | 'timed' | 'error' | null>(null);
+	const [query, setQuery] = useState('');
+	// Номер текущего совпадения среди найденных.
+	const [current, setCurrent] = useState(0);
+	const listRef = useRef<HTMLDivElement>(null);
 	const segments = transcript.segments;
+
+	const needle = normalizeForSearch(query.trim());
+	const matches = useMemo(
+		() =>
+			needle
+				? segments.reduce<number[]>((found, s, i) => {
+						if (normalizeForSearch(s.text).includes(needle)) found.push(i);
+						return found;
+					}, [])
+				: [],
+		[segments, needle],
+	);
+	const activeSegment = matches.length > 0 ? matches[current] : -1;
 
 	useEffect(() => {
 		if (!copied) return;
 		const timer = setTimeout(() => setCopied(null), 2000);
 		return () => clearTimeout(timer);
 	}, [copied]);
+
+	useEffect(() => {
+		setCurrent(0);
+	}, [needle]);
+
+	// Прокручиваем только сам список: страница при этом остаётся на месте.
+	useEffect(() => {
+		if (activeSegment < 0 || !listRef.current) return;
+		const row = listRef.current.querySelector<HTMLElement>(`#segment-${activeSegment}`);
+		if (!row) return;
+		const list = listRef.current;
+		const rowTop = row.offsetTop; // список имеет position: relative, отсчёт от него
+		list.scrollTo({
+			top: rowTop - (list.clientHeight - row.clientHeight) / 2,
+			behavior: 'smooth',
+		});
+	}, [activeSegment]);
 
 	if (segments.length === 0) {
 		return (
@@ -602,39 +666,137 @@ function TranscriptView({ transcript }: { transcript: Transcript }) {
 		);
 	}
 
-	const copyText = async () => {
+	const copy = async (kind: 'plain' | 'timed') => {
+		const text = segments
+			.map((s) => (kind === 'timed' ? `[${formatTimecode(s.start)}] ${s.text}` : s.text))
+			.join('\n');
 		try {
-			await navigator.clipboard.writeText(segments.map((s) => s.text).join('\n'));
-			setCopied('ok');
+			await navigator.clipboard.writeText(text);
+			setCopied(kind);
 		} catch {
 			setCopied('error');
 		}
 	};
 
+	const step = (delta: number) => {
+		if (matches.length === 0) return;
+		setCurrent((n) => (n + delta + matches.length) % matches.length);
+	};
+
+	const copyLabel = (kind: 'plain' | 'timed', idle: string) =>
+		copied === kind ? 'Скопировано' : copied === 'error' ? 'Не удалось скопировать' : idle;
+
 	return (
 		<div className='space-y-3'>
-			<div className='flex items-center justify-between gap-3'>
+			<div className='flex flex-wrap items-center justify-between gap-3'>
 				<p className='font-semibold text-gray-900 dark:text-white'>Текст урока</p>
-				<Button variant='outline' size='sm' onClick={copyText} className='cursor-pointer'>
-					{copied === 'ok' ? (
-						<Check className='w-4 h-4 mr-2' />
-					) : (
-						<Copy className='w-4 h-4 mr-2' />
-					)}
-					{copied === 'ok'
-						? 'Скопировано'
-						: copied === 'error'
-							? 'Не удалось скопировать'
-							: 'Скопировать текст'}
-				</Button>
+				<div className='flex flex-wrap gap-2'>
+					<Button
+						variant='outline'
+						size='sm'
+						onClick={() => copy('plain')}
+						className='cursor-pointer'
+					>
+						{copied === 'plain' ? (
+							<Check className='w-4 h-4 mr-2' />
+						) : (
+							<Copy className='w-4 h-4 mr-2' />
+						)}
+						{copyLabel('plain', 'Скопировать текст')}
+					</Button>
+					<Button
+						variant='outline'
+						size='sm'
+						onClick={() => copy('timed')}
+						className='cursor-pointer'
+					>
+						{copied === 'timed' ? (
+							<Check className='w-4 h-4 mr-2' />
+						) : (
+							<Copy className='w-4 h-4 mr-2' />
+						)}
+						{copyLabel('timed', 'Скопировать с таймкодами')}
+					</Button>
+				</div>
 			</div>
-			<div className='max-h-[60vh] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700'>
+
+			<div className='flex flex-wrap items-center gap-2'>
+				<div className='relative flex-1 min-w-[200px]'>
+					<Search className='w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400' />
+					<Input
+						id='transcript-search'
+						value={query}
+						onChange={(e) => setQuery(e.target.value)}
+						onKeyDown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								step(e.shiftKey ? -1 : 1);
+							}
+						}}
+						placeholder='Найти в тексте'
+						aria-label='Поиск по тексту урока'
+						className='pl-9 pr-9 dark:bg-gray-800 dark:border-gray-600 dark:text-white'
+					/>
+					{query && (
+						<button
+							type='button'
+							onClick={() => setQuery('')}
+							aria-label='Очистить поиск'
+							className='absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 cursor-pointer'
+						>
+							<X className='w-4 h-4' />
+						</button>
+					)}
+				</div>
+				{needle && (
+					<div className='flex items-center gap-1' aria-live='polite'>
+						<span className='text-sm text-gray-500 dark:text-gray-400 tabular-nums mr-1'>
+							{matches.length > 0
+								? `${current + 1} из ${matches.length}`
+								: 'Ничего не найдено'}
+						</span>
+						<Button
+							variant='outline'
+							size='sm'
+							onClick={() => step(-1)}
+							disabled={matches.length === 0}
+							aria-label='Предыдущее совпадение'
+							className='cursor-pointer'
+						>
+							<ChevronUp className='w-4 h-4' />
+						</Button>
+						<Button
+							variant='outline'
+							size='sm'
+							onClick={() => step(1)}
+							disabled={matches.length === 0}
+							aria-label='Следующее совпадение'
+							className='cursor-pointer'
+						>
+							<ChevronDown className='w-4 h-4' />
+						</Button>
+					</div>
+				)}
+			</div>
+
+			<div
+				ref={listRef}
+				className='relative max-h-[60vh] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700'
+			>
 				{segments.map((s, i) => (
-					<div key={i} className='flex gap-4 p-3'>
+					<div
+						key={i}
+						id={`segment-${i}`}
+						className={`flex gap-4 p-3 ${
+							i === activeSegment ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''
+						}`}
+					>
 						<span className='w-16 flex-shrink-0 text-sm tabular-nums text-gray-400'>
 							{formatTimecode(s.start)}
 						</span>
-						<p className='text-gray-800 dark:text-gray-200 leading-relaxed'>{s.text}</p>
+						<p className='text-gray-800 dark:text-gray-200 leading-relaxed'>
+							<Highlighted text={s.text} needle={needle} />
+						</p>
 					</div>
 				))}
 			</div>
